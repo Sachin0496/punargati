@@ -53,6 +53,15 @@ Sources are in [docs/CLINICAL_BASIS.md](docs/CLINICAL_BASIS.md).
 
 <sub>Screenshots were taken on a development machine running the CPU fallback. On a Snapdragon PC the compute badge reads *Hexagon NPU*.</sub>
 
+## For reviewers: where each judging criterion is addressed
+
+| Criterion | Evidence |
+|---|---|
+| **Technical implementation** | Two Qualcomm AI Hub models cascaded on the Hexagon NPU through the onnxruntime-qnn plugin EP, with strict-mode proof of 100% offload ([runtime.py](punargati/runtime.py), [pose.py](punargati/pose.py)). Goniometry, a rep state machine and form rules ([kinematics.py](punargati/kinematics.py), [exercises.py](punargati/exercises.py)). Validated on real footage, with 29 tests ([tests/](tests)). NPU / GPU / CPU benchmark ([BENCHMARKS.md](docs/BENCHMARKS.md)) |
+| **Use case & innovation** | Home rehab with measured range of motion and standard fall-risk tests (CDC, AAOS), prescription import, and red-flag safety ([CLINICAL_BASIS.md](docs/CLINICAL_BASIS.md)) |
+| **Deployment & accessibility** | One-script setup on Windows on ARM64 with NPU self-test and automatic fallbacks, fully offline, 7 Indian languages, privacy view, runs on any laptop, demo clip ([WINDOWS_ARM64_SETUP.md](docs/WINDOWS_ARM64_SETUP.md)) |
+| **Presentation & documentation** | This README, [architecture](docs/ARCHITECTURE.md), [pitch deck](deck/PunarGati.pdf), [demo script](docs/DEMO_SCRIPT.md) |
+
 ## Architecture
 
 ```mermaid
