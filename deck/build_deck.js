@@ -131,8 +131,9 @@ function note(s, text) {
 // 5 ─ Live coaching screenshot
 {
   const s = base("Live coaching", "Every rep measured: angle, tempo and quality, plus a spoken correction");
-  card(s, M, 1.85, 8.6, 3.55 + 0.02, { fill: C.dark, line: "1E293B" });
-  s.addImage({ path: A("coach_crop.png"), x: M + 0.08, y: 1.93, w: 8.44, h: 8.44 * 582 / 1420 });
+  card(s, M, 1.85, 8.6, 3.38, { fill: C.dark, line: "1E293B" });
+  // Animated in PowerPoint (GIF of the real app on the demo clip); PDF shows the first frame.
+  s.addImage({ path: A("demo.gif"), x: M + 0.08, y: 1.93, w: 8.44, h: 8.44 * 488 / 1280 });
   const pts = [
     ["Goniometer-style joint angles", "Knee, hip, shoulder, elbow and trunk, computed in isotropic pixel space"],
     ["Per-rep quality score", "Range reached × tempo × form, so a partial rep gets \"go a little further\""],
