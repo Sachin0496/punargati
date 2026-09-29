@@ -275,6 +275,7 @@ function note(s, text) {
     s.addText(h, { x: M + 0.8, y, w: 5.6, h: 0.4, fontFace: "Consolas", fontSize: 15, bold: true, color: C.ink });
     s.addText(t, { x: M + 0.8, y: y + 0.4, w: 5.6, h: 0.75, fontFace: F.body, fontSize: 13.5, color: C.muted, valign: "top" });
   });
+  s.addText("Tested on every push by CI on a native Windows-on-ARM64 runner: install script, QNN plugin + fallbacks, local-LLM scripts and all tests.", { x: M, y: 5.85, w: 6.4, h: 0.6, fontFace: F.body, fontSize: 12.5, italic: true, color: C.accent });
   const acc = ["7 Indian languages, offline voices", "Privacy view: skeleton only", "Runs on any laptop (CPU fallback)", "Bundled demo clip, no webcam needed", "No account, no subscription", "Data stays in ./data on the PC"];
   card(s, 7.3, 1.9, 5.43, 3.9);
   s.addText("Accessible by default", { x: 7.55, y: 2.0, w: 5, h: 0.45, fontFace: F.head, fontSize: 18, bold: true, color: C.ink });
