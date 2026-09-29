@@ -2,6 +2,10 @@
 # Downloads the official llama.cpp Windows-ARM64 build and Qwen3-4B-Instruct-2507 Q4_0,
 # the GGUF that Qualcomm AI Hub lists for Qwen3-4B on Snapdragon (geniex_llamacpp asset).
 # Files go to %USERPROFILE%\llm (outside OneDrive: multi-GB files and sync don't mix).
+param(
+    [string]$ModelUrl = "https://huggingface.co/unsloth/Qwen3-4B-Instruct-2507-GGUF/resolve/main/Qwen3-4B-Instruct-2507-Q4_0.gguf",
+    [string]$ModelFile = "Qwen3-4B-Instruct-2507-Q4_0.gguf"
+)
 $ErrorActionPreference = "Stop"
 $LlmRoot = Join-Path $env:USERPROFILE "llm"
 $Tag = "b9964"   # validated on Snapdragon X Elite (see Team-Highest/Gaja-alert docs/LOCAL_INFERENCE.md)
@@ -17,5 +21,5 @@ function Get-File($Url, $Dest) {
 $zip = "$LlmRoot\llama-$Tag-bin-win-cpu-arm64.zip"
 Get-File "https://github.com/ggml-org/llama.cpp/releases/download/$Tag/llama-$Tag-bin-win-cpu-arm64.zip" $zip
 if (-not (Test-Path "$LlmRoot\llama.cpp\llama-server.exe")) { Expand-Archive -Force $zip "$LlmRoot\llama.cpp" }
-Get-File "https://huggingface.co/unsloth/Qwen3-4B-Instruct-2507-GGUF/resolve/main/Qwen3-4B-Instruct-2507-Q4_0.gguf" "$LlmRoot\models\Qwen3-4B-Instruct-2507-Q4_0.gguf"
+Get-File $ModelUrl "$LlmRoot\models\$ModelFile"
 Write-Host "`nDone. Start it with: scripts\serve-llm.ps1  (PunarGati detects it automatically on :8080)"

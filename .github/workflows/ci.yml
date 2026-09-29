@@ -42,3 +42,14 @@ jobs:
       - name: unit + integration tests
         shell: powershell
         run: .venv\Scripts\python.exe -m unittest discover -s tests -v
+      # Local-LLM path: official llama.cpp win-arm64 build via our scripts (a 0.6B model keeps CI fast),
+      # then PunarGati's client must detect it on loopback and write an LLM summary.
+      - name: local LLM via setup-llm.ps1 / serve-llm.ps1
+        shell: powershell
+        run: |
+          powershell -ExecutionPolicy Bypass -File scripts\setup-llm.ps1 -ModelUrl "https://huggingface.co/unsloth/Qwen3-0.6B-GGUF/resolve/main/Qwen3-0.6B-Q4_0.gguf" -ModelFile "Qwen3-0.6B-Q4_0.gguf"
+          Start-Process powershell -ArgumentList "-ExecutionPolicy","Bypass","-File","scripts\serve-llm.ps1","-Model","Qwen3-0.6B-Q4_0.gguf","-Threads","4" -WindowStyle Hidden
+          $ok = $false
+          foreach ($i in 1..60) { try { Invoke-RestMethod http://127.0.0.1:8080/v1/models | Out-Null; $ok = $true; break } catch { Start-Sleep 3 } }
+          if (-not $ok) { throw "llama-server did not come up" }
+          .venv\Scripts\python.exe -c "from punargati.llm import llm, coach_chat; st = llm.status(refresh=True); print(st); assert st['available']; r = coach_chat('Which exercise should I focus on?', [], 'en'); print(r); assert r['source'] == 'llm'"
