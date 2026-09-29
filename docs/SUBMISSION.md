@@ -28,6 +28,7 @@ PunarGati turns a Snapdragon-powered HP laptop into a physiotherapist's eyes:
 MoveNet crop tracking; One-Euro keypoint filtering in body-scale units; goniometry in isotropic pixel space; per-side hysteresis rep state machines with duration and timeout guards; view-aware form rules with persistence; median-filtered ROM tests; quantized uint16 I/O using AI Hub metadata; NPU → GPU → CPU fallback ladder with the reason shown in the UI; a loopback-only server with a DNS-rebinding guard; SHA-256-pinned model downloads; 31 automated tests, including HTTP integration with the real model. Validated on real footage: 3/3 stands on the CDC's own 30-second chair stand video (front view, using a view-independent self-calibrating sit/stand signal) and 2/2 squats on a demo clip.
 
 **Deployment & accessibility**
+Continuous integration on a native Windows-on-ARM64 runner runs the exact install script, the NPU plugin registration and fallbacks, the local-LLM scripts and all tests on every push.
 One PowerShell script: it finds or installs native ARM64 Python, installs 3 packages (numpy, onnxruntime, onnxruntime-qnn), verifies the models (vendored in the repo), and self-tests the NPU. It launches by double-clicking `PunarGati.bat`. It runs fully offline, has no account or subscription, supports 7 Indian languages with offline voices, and has a privacy view that shows only the skeleton. On non-Snapdragon machines it falls back to CPU automatically, and a bundled demo clip lets anyone try it without a webcam.
 
 **Impact**
