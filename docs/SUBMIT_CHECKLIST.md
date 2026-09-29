@@ -17,6 +17,6 @@ Everything below runs on **your Snapdragon laptop**. Start with the downloads, b
    - `docs/img/coach.png` (Coach tab mid-exercise)
    - `deck/assets/coach_crop.png` (the same view, without the header). In PowerPoint, right-click the picture → *Change Picture* on slides 1 and 5, then export the PDF again
    - optionally add `docs/img/perf.png` (benchmark results) to the README
-7. **Record the 3-minute demo** following `docs/DEMO_SCRIPT.md`. Upload it (YouTube unlisted or Drive, anyone with the link) and paste the link into `README.md` and `docs/SUBMISSION.md`.
+7. **Record the 3-minute demo** following `docs/DEMO_SCRIPT.md`. (Fallback if you run out of time: `deck/PunarGati_reel.mp4` is a ready 66-s silent product reel, but a real Snapdragon recording scores far better.) Upload it (YouTube unlisted or Drive, anyone with the link) and paste the link into `README.md` and `docs/SUBMISSION.md`.
 8. **Commit and push**: `git add -A; git commit -m "Snapdragon benchmarks, screenshots, demo link"; git push`
 9. **Submit on Unstop.** Copy the text from `docs/SUBMISSION.md`, then attach `deck/PunarGati.pdf` (or .pptx), the GitHub link and the video link. Only one submission is allowed and it **can't be edited**, so check every field before submitting.
