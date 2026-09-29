@@ -2,7 +2,7 @@
 
 **Your physiotherapist's eyes at home.** PunarGati is an on-device AI physiotherapy coach for Snapdragon-powered HP PCs (OmniBook X, OmniBook Ultra, EliteBook Ultra and other Copilot+ PCs). It watches you exercise through the laptop camera, counts reps, measures joint angles like a goniometer, corrects your form out loud in 7 Indian languages, runs standard clinical screening tests, and writes a progress report you can hand to your physiotherapist.
 
-Pose tracking runs on the **Snapdragon Hexagon NPU** through ONNX Runtime's QNN execution provider, using a model from **Qualcomm AI Hub**. Session summaries, prescription import and Q&A come from a **local LLM**. No video, health data or prompt ever leaves the PC. It needs no internet connection, no account and no subscription.
+Pose tracking runs on the **Snapdragon Hexagon NPU** through ONNX Runtime's QNN execution provider, using two **Qualcomm AI Hub** models: MoveNet runs always, and RTMPose-WholeBody joins it in precision mode. Session summaries, prescription import and Q&A come from a **local LLM**. No video, health data or prompt ever leaves the PC. It needs no internet connection, no account and no subscription.
 
 > *Punar* (again) + *gati* (movement): "movement, restored".
 
@@ -28,7 +28,7 @@ Sources are in [docs/CLINICAL_BASIS.md](docs/CLINICAL_BASIS.md).
 | Requirement | Why the cloud fails it | How PunarGati meets it on Snapdragon |
 |---|---|---|
 | **A camera in the bedroom** | Streaming home video of patients to a server is a privacy and DPDP-Act problem | Frames are processed in RAM on the NPU and then dropped. Nothing is stored or sent. There's also a *Privacy view* that shows only the skeleton |
-| **Works in tier-2/3 towns** | Needs reliable bandwidth at 30 fps | Fully offline. Models ship inside the repo |
+| **Works in tier-2/3 towns** | Needs reliable bandwidth at 30 fps | Fully offline after setup. MoveNet ships inside the repo |
 | **Zero marginal cost** | Per-minute inference bills make ₹0 home rehab impossible | One-time laptop, unlimited sessions |
 | **Real-time feedback** | A round trip adds lag and ruins rep timing | ~1 ms pose inference on the Hexagon NPU ([AI Hub profile](docs/BENCHMARKS.md)) |
 | **Runs for a whole session on battery** | — | The NPU does the continuous vision work, which leaves the CPU free and the fans quiet. Measure it yourself with the built-in NPU / GPU / CPU benchmark |
@@ -73,7 +73,7 @@ flowchart LR
     TTS[Offline Windows voices<br/>7 languages]
   end
   subgraph PC["Python engine on 127.0.0.1 (numpy + onnxruntime)"]
-    POSE["MoveNet · Qualcomm AI Hub<br/>w8a16 on Hexagon NPU<br/>(QNN EP, HTP backend)"]
+    POSE["MoveNet · Qualcomm AI Hub<br/>w8a16 on Hexagon NPU<br/>(QNN EP, HTP backend)<br/>+ RTMPose-WholeBody in precision mode"]
     FIL[One-Euro filter<br/>+ MoveNet crop tracker]
     KIN[Goniometry<br/>knee · hip · shoulder · elbow · trunk]
     REP[Rep state machine<br/>+ form rules]
