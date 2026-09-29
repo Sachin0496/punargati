@@ -36,6 +36,7 @@ Sources are in [docs/CLINICAL_BASIS.md](docs/CLINICAL_BASIS.md).
 ## What it does
 
 - **Live coaching for 9 exercises**: mini squat, sit-to-stand, seated knee extension, shoulder forward raise, shoulder side raise, elbow curl, standing hip abduction, standing march and heel raise. Reps are counted per side, with range of motion, tempo and a quality score for every rep.
+- **Fatigue-aware**: when the last reps lose 15% of the set's opening range, or slow sharply, it suggests a short rest instead of letting form break down.
 - **Form correction** while you move, spoken and shown on screen: "keep your chest up", "push your knees outward", "keep your elbow straight", "don't shrug"… It also tells you when to turn side-on or step back into frame.
 - **Clinical screening tests**, timed and scored on-device:
   - 30-second chair stand (CDC STEADI fall-risk thresholds by age and sex)
@@ -57,7 +58,7 @@ Sources are in [docs/CLINICAL_BASIS.md](docs/CLINICAL_BASIS.md).
 
 | Criterion | Evidence |
 |---|---|
-| **Technical implementation** | Two Qualcomm AI Hub models cascaded on the Hexagon NPU through the onnxruntime-qnn plugin EP, with strict-mode proof of 100% offload ([runtime.py](punargati/runtime.py), [pose.py](punargati/pose.py)). Goniometry, a rep state machine and form rules ([kinematics.py](punargati/kinematics.py), [exercises.py](punargati/exercises.py)). Validated on real footage, with 29 tests ([tests/](tests)). NPU / GPU / CPU benchmark ([BENCHMARKS.md](docs/BENCHMARKS.md)) |
+| **Technical implementation** | Two Qualcomm AI Hub models cascaded on the Hexagon NPU through the onnxruntime-qnn plugin EP, with strict-mode proof of 100% offload ([runtime.py](punargati/runtime.py), [pose.py](punargati/pose.py)). Goniometry, a rep state machine and form rules ([kinematics.py](punargati/kinematics.py), [exercises.py](punargati/exercises.py)). Validated on real footage, with 31 tests ([tests/](tests)). NPU / GPU / CPU benchmark ([BENCHMARKS.md](docs/BENCHMARKS.md)) |
 | **Use case & innovation** | Home rehab with measured range of motion and standard fall-risk tests (CDC, AAOS), prescription import, and red-flag safety ([CLINICAL_BASIS.md](docs/CLINICAL_BASIS.md)) |
 | **Deployment & accessibility** | One-script setup on Windows on ARM64 with NPU self-test and automatic fallbacks, fully offline, 7 Indian languages, privacy view, runs on any laptop, demo clip ([WINDOWS_ARM64_SETUP.md](docs/WINDOWS_ARM64_SETUP.md)) |
 | **Presentation & documentation** | This README, [architecture](docs/ARCHITECTURE.md), [pitch deck](deck/PunarGati.pdf), [demo script](docs/DEMO_SCRIPT.md) |
@@ -137,7 +138,7 @@ No webcam? Click **Try the demo clip** on the start screen. It runs the same pip
 - **Rep counting that doesn't lie.** Each side runs its own hysteresis state machine (rest → moving → rest) with minimum-duration and timeout guards. Form rules must hold for several consecutive frames before they fire. ROM tests take a median-of-5 so a single-frame glitch can't set a "record".
 - **Local-only by construction.** The server binds to `127.0.0.1` and rejects foreign `Host` headers, which guards against DNS rebinding. The LLM client only probes loopback ports, and a remote URL needs an explicit opt-in.
 - **Validated on real footage.** On the **CDC's own 30-second chair stand demonstration video** (public domain), PunarGati counts **3/3 stands** (hand count), filmed from the front, where knee angles are useless because the thighs point at the camera. The sit/stand signal is a self-calibrating shoulder-height measure that works in any view. The squat demo clip gives **2/2 reps**. Both clips are regression tests.
-- **Tested.** 29 tests cover synthetic-skeleton kinematics, rep counting, clinical-test timelines, the prescription parser, HTTP integration with the real model, and the two real-video regressions: `python -m unittest discover -s tests`. `python -m punargati.offline clip.mp4 --exercise squat` replays any recording through the exact live pipeline.
+- **Tested.** 31 tests cover synthetic-skeleton kinematics, rep counting, clinical-test timelines, the prescription parser, HTTP integration with the real model, and the two real-video regressions: `python -m unittest discover -s tests`. `python -m punargati.offline clip.mp4 --exercise squat` replays any recording through the exact live pipeline.
 
 ## Privacy and safety
 

@@ -262,6 +262,7 @@ class RepCounter:
         self.metric = ex.metric_factory() if ex.metric_factory else ex.metric
         self.reps: list[Rep] = []
         self.value: dict[str, float] = {s: nan for s in self.sides}
+        self.fatigue_at: dict[str, int] = {}
 
     def counts(self) -> dict:
         c = {s: 0 for s in self.sides}
@@ -310,6 +311,8 @@ class RepCounter:
                 rep = self._score(s, m, dur, f.t)
                 self.reps.append(rep)
                 events.append({"type": "rep", "rep": rep.as_dict(), "count": self.counts()})
+                if self._fatigued(s):
+                    events.append({"type": "cue", "cue": "take_rest", "side": s})
                 if rep.peak < self.ex.target * 0.85 and rep.quality < 80:
                     events.append({"type": "cue", "cue": "go_further", "side": s})
                 elif dur < self.ex.ideal_rep_s * 0.45:
@@ -317,6 +320,26 @@ class RepCounter:
                 elif rep.quality >= 90:
                     events.append({"type": "cue", "cue": "great_rep", "side": s})
         return events
+
+    def _fatigued(self, s: str) -> bool:
+        """Fatigue = the last 3 reps lost >=15% of the first 3 reps' range, or slowed by >=60%.
+
+        Fires once per side per set. Range loss is the primary signal: slow, controlled
+        reps are encouraged, so tempo alone needs a larger change.
+        """
+        rs = [r for r in self.reps if r.side == s]
+        if s in self.fatigue_at or len(rs) < 6:
+            return False
+        span = lambda r: r.peak - self.ex.rest  # noqa: E731
+        base, last = rs[:3], rs[-3:]
+        b_rom = sum(map(span, base)) / 3
+        l_rom = sum(map(span, last)) / 3
+        b_dur = sum(r.duration for r in base) / 3
+        l_dur = sum(r.duration for r in last) / 3
+        if (b_rom > 0 and l_rom < 0.85 * b_rom) or l_dur > 1.6 * b_dur:
+            self.fatigue_at[s] = len(rs)
+            return True
+        return False
 
     def _score(self, s: str, m: _SideMachine, dur: float, t: float) -> Rep:
         span = max(1e-6, self.ex.target - self.ex.rest)
@@ -351,6 +374,7 @@ class RepCounter:
         return {
             "exercise": self.ex.id, "name": self.ex.name, "rom_label": self.ex.rom_label,
             "reps": len(reps), "by_side": by_side, "faults": faults,
+            "fatigue_at_rep": {SIDE_NAMES[k]: v for k, v in self.fatigue_at.items()},
             "avg_quality": round(sum(r.quality for r in reps) / len(reps)) if reps else 0,
             "rep_log": [r.as_dict() for r in reps],
         }

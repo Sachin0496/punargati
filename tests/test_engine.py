@@ -157,6 +157,17 @@ class Reps(unittest.TestCase):
         self.assertEqual(len(rc.reps), 2)
         self.assertAlmostEqual(rc.reps[0].rom, 5, delta=1.5)
 
+    def test_fatigue_detected_when_range_drops(self):
+        angles = wave(5, 90, 4) + wave(5, 60, 3)   # last reps lose a third of the range
+        rc, ev = run("squat", angles)
+        self.assertEqual(len(rc.reps), 7)
+        self.assertIn("take_rest", [e.get("cue") for e in ev])
+        self.assertEqual(rc.summary()["fatigue_at_rep"], {"both": 6})  # flagged as soon as the 3-rep window shows it
+
+    def test_no_fatigue_on_steady_set(self):
+        rc, ev = run("squat", wave(5, 90, 8))
+        self.assertNotIn("take_rest", [e.get("cue") for e in ev])
+
     def test_summary_shape(self):
         rc, _ = run("squat", wave(5, 90, 2))
         s = rc.summary()

@@ -249,7 +249,7 @@ function note(s, text) {
     ["Accuracy from small models", "MoveNet crop tracking keeps the person large; One-Euro filtering in body-scale units."],
     ["Honest rep counting", "Per-side hysteresis state machines, duration/timeout guards, form rules that must persist 4 frames."],
     ["View-independent tests", "Self-calibrating shoulder-height signal for sit/stand. 3/3 stands on the CDC's own front-view video."],
-    ["Never dead in a demo", "NPU → GPU → CPU ladder, a QNN 1.x fallback route, LLM-free fallbacks, 29 tests incl. real video."],
+    ["Never dead in a demo", "NPU → GPU → CPU ladder, a QNN 1.x fallback route, LLM-free fallbacks, 31 tests incl. real video."],
   ];
   E.forEach(([h, t], i) => {
     const x = M + (i % 3) * 4.1, y = 1.9 + Math.floor(i / 3) * 2.15;

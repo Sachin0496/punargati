@@ -67,6 +67,6 @@ Voice cues use Windows' offline speech voices. Add them in **Settings › Time &
 ```powershell
 .venv\Scripts\python.exe -m punargati.doctor                    # environment + NPU check
 .venv\Scripts\python.exe -m punargati.bench --write-docs        # NPU vs GPU vs CPU → docs/BENCHMARKS.md
-.venv\Scripts\python.exe -m unittest discover -s tests          # 29 tests (video ones need ffmpeg)
+.venv\Scripts\python.exe -m unittest discover -s tests          # 31 tests (video ones need ffmpeg)
 .venv\Scripts\python.exe -m punargati.offline web\demo\squat.webm --exercise squat   # needs ffmpeg on PATH
 ```
