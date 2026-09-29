@@ -1,0 +1,44 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  tests-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - run: pip install -r requirements.txt
+      - run: python -m punargati.models download
+      - run: python -m punargati.doctor
+      - run: python -m unittest discover -s tests -v
+
+  # Windows on ARM64 (native): the Snapdragon install path end to end, minus the NPU itself.
+  # Proves setup.ps1 finds a native ARM64 Python, that numpy / onnxruntime / onnxruntime-qnn
+  # install from win_arm64 wheels, that the QNN plugin EP registers, and that the app falls
+  # back cleanly when no Hexagon NPU is present.
+  windows-arm64:
+    runs-on: windows-11-arm
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          architecture: arm64
+      - name: setup.ps1
+        shell: powershell
+        run: powershell -ExecutionPolicy Bypass -File scripts\setup.ps1
+      - name: QNN plugin registration
+        shell: powershell
+        run: |
+          .venv\Scripts\python.exe -c "import os, onnxruntime as ort; from punargati import runtime; print(os.environ.get('PROCESSOR_ARCHITECTURE'), ort.__version__, runtime.machine_info()); print('targets', runtime.available_targets()); print('registered', runtime._qnn_registered)"
+      - name: unit + integration tests
+        shell: powershell
+        run: .venv\Scripts\python.exe -m unittest discover -s tests -v
