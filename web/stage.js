@@ -1,5 +1,6 @@
 // Camera / video source, the frame loop to the on-device engine, and the skeleton overlay.
-const EDGES = [[5,6],[5,7],[7,9],[6,8],[8,10],[5,11],[6,12],[11,12],[11,13],[13,15],[12,14],[14,16],[0,5],[0,6]];
+const EDGES = [[5,6],[5,7],[7,9],[6,8],[8,10],[5,11],[6,12],[11,12],[11,13],[13,15],[12,14],[14,16],[0,5],[0,6],
+  [15,19],[19,17],[15,17],[16,22],[22,20],[16,20]];   // feet (precision mode, COCO-WholeBody)
 const JOINT_FOR = {             // exercise/test -> [left triple, right triple] (a, vertex, c)
   knee: [[11,13,15],[12,14,16]],
   hip: [[5,11,13],[6,12,14]],
@@ -9,8 +10,7 @@ const JOINT_FOR = {             // exercise/test -> [left triple, right triple] 
 const REGION_JOINT = { squat: "knee", sit_to_stand: "knee", knee_extension: "knee", shoulder_flexion: "shoulder",
   shoulder_abduction: "shoulder", elbow_curl: "elbow", hip_abduction: "hip", marching: "hip",
   rom_shoulder_flexion: "shoulder", rom_shoulder_abduction: "shoulder", rom_knee_flexion: "knee",
-  chair_stand_30s: "knee" };
-const S = 192;
+  chair_stand_30s: "knee", heel_raise: "ankle" };
 
 export class Stage {
   constructor({ video, overlay, onResult, onError }) {
@@ -19,7 +19,8 @@ export class Stage {
     this.octx = overlay.getContext("2d");
     this.crop = null;
     this.canvas = document.createElement("canvas");
-    this.canvas.width = this.canvas.height = S;
+    this.size = 192;                 // 288 in precision mode (RTMPose needs more pixels)
+    this.canvas.width = this.canvas.height = this.size;
     this.cctx = this.canvas.getContext("2d", { willReadFrequently: true });
     this.onResult = onResult;
     this.onError = onError;
@@ -88,6 +89,8 @@ export class Stage {
     if (this.inflight || v.readyState < 2 || !v.videoWidth) return;
     const w = v.videoWidth, h = v.videoHeight;
     if (!this.crop) { const size = Math.max(w, h); this.crop = { x: (w - size) / 2, y: (h - size) / 2, size }; }
+    const S = this.size;
+    if (this.canvas.width !== S) this.canvas.width = this.canvas.height = S;
     const c = this.crop, k = S / c.size;
     this.cctx.fillStyle = "#000";
     this.cctx.fillRect(0, 0, S, S);
@@ -162,7 +165,7 @@ export class Stage {
       g.strokeStyle = "#5eead4"; g.lineWidth = 3.5;
       g.beginPath(); g.moveTo(x1, y1); g.lineTo(x2, y2); g.stroke();
     }
-    for (let i = 5; i < 17; i++) {
+    for (let i = 5; i < k.length; i++) {
       if (k[i][2] < 0.25) continue;
       const [x, y] = P(k[i][0], k[i][1]);
       g.fillStyle = "#f8fafc"; g.beginPath(); g.arc(x, y, 5, 0, 7); g.fill();
@@ -178,6 +181,7 @@ export class Stage {
   drawAngles(g, P, k, r) {
     const joint = REGION_JOINT[this.focus];
     if (!joint) return;
+    if (joint === "ankle") return this.drawFeet(g, P, k, r);
     const angles = r.angles || {};
     const keyFor = { knee: "knee_flex", hip: this.focus === "hip_abduction" ? "hip_abd" : "hip_flex",
       shoulder: "shoulder", elbow: "elbow_flex" }[joint];
@@ -205,6 +209,20 @@ export class Stage {
     });
   }
 }
+
+Stage.prototype.drawFeet = function (g, P, k, r) {
+  [["l", 19, 17], ["r", 22, 20]].forEach(([s, heel, toe]) => {
+    if (!k[heel] || k[heel][2] < 0.3 || k[toe][2] < 0.3) return;
+    const v = r.angles?.[`foot_pitch_${s}`];
+    if (v == null) return;
+    const [hx, hy] = P(k[heel][0], k[heel][1]);
+    const label = `${Math.round(v)}°`;
+    g.font = "700 16px 'Segoe UI Variable', system-ui, sans-serif";
+    const w = g.measureText(label).width + 12;
+    g.fillStyle = "rgba(15,23,42,.85)"; roundRect(g, hx - w / 2, hy + 10, w, 26, 7); g.fill();
+    g.fillStyle = "#fde68a"; g.textAlign = "center"; g.textBaseline = "middle"; g.fillText(label, hx, hy + 23);
+  });
+};
 
 function roundRect(g, x, y, w, h, r) {
   g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r);

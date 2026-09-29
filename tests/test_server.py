@@ -58,11 +58,25 @@ class ServerTest(unittest.TestCase):
         for i in range(5):
             s, out = self.req("POST", f"/api/frame?x=0&y=-280&size=1280&w=1280&h=720&t={i / 30}", px)
             self.assertEqual(s, 200, out)
-        self.assertEqual(len(out["kps"]), 17)
+        self.assertEqual(len(out["kps"]), 23)  # 17 body + 6 feet (feet filled in precision mode)
         self.assertIn("perf", out)
         self.assertEqual(out["activity"]["id"], "squat")
         s, rec = self.req("POST", "/api/stop", {})
         self.assertFalse(rec["saved"])  # no reps on a black frame: nothing to save
+
+    @unittest.skipUnless(any(server.ASSETS[k].present() for k in ("rtmpose-w8a16", "rtmpose-float")),
+                         "RTMPose not downloaded")
+    def test_precision_mode_and_heel_raise(self):
+        s, st = self.req("POST", "/api/start", {"kind": "exercise", "id": "heel_raise"})
+        self.assertEqual(s, 200, st)
+        self.assertTrue(st["precision"])  # feet exercise switches the RTMPose cascade on
+        px = bytes(288 * 288 * 4)
+        s, out = self.req("POST", "/api/frame?x=0&y=-280&size=1280&w=1280&h=720&t=0.1", px)
+        self.assertEqual(s, 200, out)
+        self.assertTrue(out["perf"]["precision"])
+        self.req("POST", "/api/stop", {})
+        s, st = self.req("POST", "/api/precision", {"on": False})
+        self.assertFalse(st["on"])
 
     def test_bad_frame_size(self):
         s, out = self.req("POST", "/api/frame?x=0&y=0&size=10&w=10&h=10&t=0", b"123")

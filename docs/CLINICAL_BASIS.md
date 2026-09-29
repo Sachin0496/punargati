@@ -51,6 +51,7 @@ Sources: CDC STEADI *Assessment: 30-Second Chair Stand*; Jones CJ, Rikli RE, Bea
 | Elbow curl | elbow flexion per side | < 35° → > 75° → 120° |
 | Standing hip abduction | thigh vs the trunk's downward axis, per side | < 8° → > 16° → 28° |
 | Standing march | hip flexion per side | < 20° → > 45° → 70° |
+| Heel raise *(precision mode)* | heel→big-toe angle from horizontal (RTMPose feet) | < 8° → > 14° → 25° |
 
 **Rep quality** = range reached ÷ target range × a tempo factor (0.85 if the rep is faster than 45% of ideal tempo) × a form factor (−20% per fault, floor 40%).
 
@@ -61,7 +62,7 @@ Sources: CDC STEADI *Assessment: 30-Second Chair Stand*; Jones CJ, Rikli RE, Bea
 ## Limitations (stated in the app and the report)
 
 1. **2-D projection.** A single camera measures angles in the image plane. When the moving segment isn't square to the camera, the angle is under-estimated. PunarGati tells the patient which view each exercise needs ("turn side-on", "face the camera") and reports trends rather than single readings.
-2. **17 keypoints.** MoveNet has no feet or hands, so there's no ankle dorsiflexion or wrist/finger ROM yet. The roadmap adds AI Hub's RTMPose wholebody (133 keypoints).
+2. **Hands.** Precision mode (RTMPose-WholeBody) adds feet and hands, and the heel raise uses the feet. Hand keypoints at whole-body camera distance are too small for finger ROM, which will need a hand-focused crop.
 3. **Not validated against a goniometer yet.** Counting is validated on real footage: 3/3 stands on the CDC chair-stand video and 2/2 on the squat clip. The synthetic-skeleton unit tests recover joint angles to within 0.5°. A validation study against a clinical goniometer with a physiotherapist is the next step.
 4. **One person in frame.** MoveNet is a single-person model. If a caregiver stands next to the patient, the tracker can switch to them, so the app asks for one person in view. We saw this on the side-view part of the CDC video, where the assessor stands behind the patient.
 5. **Not a medical device.** It doesn't diagnose, doesn't change the prescription, and escalates red-flag symptoms to the clinician.

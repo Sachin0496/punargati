@@ -15,7 +15,7 @@ from dataclasses import dataclass
 import numpy as np
 
 from . import runtime
-from .models import ASSETS, PREFERRED
+from .models import ASSETS, PREFERRED, PREFERRED_WHOLEBODY
 
 KEYPOINTS = [
     "nose", "left_eye", "right_eye", "left_ear", "right_ear",
@@ -120,9 +120,14 @@ class PoseEstimator:
         return out.reshape(17, 3).astype(np.float32)
 
     def infer_crop(self, rgba: bytes | np.ndarray, crop: Crop) -> np.ndarray:
-        """Run on a browser-rendered crop. Returns (17, 3) (x, y, score) in frame pixels."""
-        a = np.frombuffer(rgba, dtype=np.uint8) if isinstance(rgba, (bytes, bytearray, memoryview)) else rgba
-        rgb = a.reshape(INPUT, INPUT, -1)[:, :, :3]
+        """Run on a browser-rendered square crop (any N×N; 192 is native).
+
+        Returns (17, 3) (x, y, score) in frame pixels.
+        """
+        rgb = as_rgb(rgba)
+        if rgb.shape[0] != INPUT:
+            idx = ((np.arange(INPUT) + 0.5) * rgb.shape[0] / INPUT).astype(int)
+            rgb = rgb[np.ix_(idx, idx)]
         yxs = self.infer(rgb)
         out = np.empty_like(yxs)
         out[:, 0] = crop.x + yxs[:, 1] * crop.size
@@ -131,16 +136,110 @@ class PoseEstimator:
         return out
 
 
-def render_crop(frame: np.ndarray, crop: Crop) -> np.ndarray:
+def as_rgb(rgba) -> np.ndarray:
+    a = np.frombuffer(rgba, dtype=np.uint8) if isinstance(rgba, (bytes, bytearray, memoryview)) else np.asarray(rgba)
+    if a.ndim == 3:
+        return a[:, :, :3]
+    n = int(round((a.size / 4) ** 0.5))
+    return a.reshape(n, n, 4)[:, :, :3]
+
+
+def _load_first(order, table, label, perf_mode):
+    errors = []
+    for t in order:
+        asset = ASSETS[table[t]]
+        if not asset.present():
+            errors.append(f"{t}: {asset.key} not downloaded (python -m punargati.models download)")
+            continue
+        try:
+            return runtime.load(f"{label} ({asset.precision})", asset.onnx_path, t, perf_mode), asset, errors
+        except Exception as e:
+            errors.append(f"{t}: {e}")
+    raise RuntimeError(f"no compute target could load {label}: " + "; ".join(errors))
+
+
+# COCO-WholeBody indices used beyond the 17 body joints.
+FEET = {"left_big_toe": 17, "left_small_toe": 18, "left_heel": 19,
+        "right_big_toe": 20, "right_small_toe": 21, "right_heel": 22}
+W_IN, H_IN = 192, 256   # RTMPose input (portrait)
+
+
+class WholeBody:
+    """RTMPose-Body2d (133 keypoints) cascaded after MoveNet — "precision mode".
+
+    MoveNet (always on) supplies the person box; RTMPose re-estimates the body at
+    higher accuracy and adds feet, which enables ankle exercises. Both run on the NPU.
+    """
+
+    def __init__(self, target: str = "npu", perf_mode: str = "burst"):
+        order = {"npu": ["npu", "gpu", "cpu"], "gpu": ["gpu", "cpu"], "cpu": ["cpu"]}[target]
+        self.session, self.asset, self.load_errors = _load_first(order, PREFERRED_WHOLEBODY, "RTMPose", perf_mode)
+        spec = self.asset.metadata().get("model_files", {}).get(self.asset.onnx_file, {})
+        q = lambda d: (d["scale"], d["zero_point"]) if d else None  # noqa: E731
+        self.in_q = q(spec.get("inputs", {}).get("image", {}).get("quantization_parameters"))
+        outs = spec.get("outputs", {})
+        self.out_q = [q(outs.get(n, {}).get("quantization_parameters")) for n in ("pred_x", "pred_y")]
+        inp = self.session.inputs[0]
+        self.input_name = inp.name
+        self.quantized = inp.type == "tensor(uint16)"
+
+    @staticmethod
+    def person_box(body: np.ndarray, min_score: float = 0.3):
+        v = body[body[:, 2] >= min_score]
+        if len(v) < 5:
+            return None
+        x0, y0 = v[:, 0].min(), v[:, 1].min()
+        x1, y1 = v[:, 0].max(), v[:, 1].max()
+        cx, cy = (x0 + x1) / 2, (y0 + y1) / 2
+        bw, bh = (x1 - x0) * 1.25, (y1 - y0) * 1.25
+        bw, bh = (bh * 0.75, bh) if bw / max(bh, 1e-6) < 0.75 else (bw, bw / 0.75)
+        return cx - bw / 2, cy - bh / 2, bw, bh
+
+    def infer(self, rgba, crop: Crop, body: np.ndarray) -> np.ndarray | None:
+        """Returns (133, 3) (x, y, score) in frame pixels, or None without a person box."""
+        box = self.person_box(body)
+        if box is None:
+            return None
+        bx, by, bw, bh = box
+        img = as_rgb(rgba)
+        n = img.shape[0]
+        # frame px -> crop-image px (nearest), black outside the crop
+        u = np.floor((bx + (np.arange(W_IN) + 0.5) * bw / W_IN - crop.x) / crop.size * n).astype(int)
+        v = np.floor((by + (np.arange(H_IN) + 0.5) * bh / H_IN - crop.y) / crop.size * n).astype(int)
+        patch = np.zeros((H_IN, W_IN, 3), np.uint8)
+        vu, vv = (u >= 0) & (u < n), (v >= 0) & (v < n)
+        patch[np.ix_(vv, vu)] = img[np.ix_(v[vv], u[vu])]
+        x = patch.astype(np.float32).transpose(2, 0, 1)[None]  # 0..255 RGB, model normalises inside
+        if self.quantized and self.in_q:
+            sc, zp = self.in_q
+            x = np.clip(np.rint(x / sc + zp), 0, 65535).astype(np.uint16)
+        px, py = self.session.run({self.input_name: x})
+        outs = []
+        for o, q in zip((px, py), self.out_q):
+            o = o[0].astype(np.float32)
+            if q and self.quantized:
+                o = (o - q[1]) * q[0]
+            outs.append(o)
+        px, py = outs
+        xs, ys = px.argmax(1) / 2.0, py.argmax(1) / 2.0     # SimCC split ratio 2
+        score = np.minimum(px.max(1), py.max(1))
+        out = np.empty((px.shape[0], 3), np.float32)
+        out[:, 0] = bx + (xs + 0.5) / W_IN * bw
+        out[:, 1] = by + (ys + 0.5) / H_IN * bh
+        out[:, 2] = np.clip(score, 0, 1)
+        return out
+
+
+def render_crop(frame: np.ndarray, crop: Crop, size: int = INPUT) -> np.ndarray:
     """Server-side equivalent of the browser's canvas crop (for offline eval/tests).
 
     ``frame``: (H, W, 3) uint8. Nearest-neighbour sampling; out-of-frame is black.
     """
     h, w = frame.shape[:2]
-    idx = (np.arange(INPUT) + 0.5) * (crop.size / INPUT)
+    idx = (np.arange(size) + 0.5) * (crop.size / size)
     xs = np.floor(crop.x + idx).astype(int)
     ys = np.floor(crop.y + idx).astype(int)
-    out = np.zeros((INPUT, INPUT, 3), dtype=np.uint8)
+    out = np.zeros((size, size, 3), dtype=np.uint8)
     vx = (xs >= 0) & (xs < w)
     vy = (ys >= 0) & (ys < h)
     out[np.ix_(vy, vx)] = frame[np.ix_(ys[vy], xs[vx])]

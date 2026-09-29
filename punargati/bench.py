@@ -20,7 +20,7 @@ import time
 import numpy as np
 
 from . import runtime, store
-from .models import ASSETS, PREFERRED
+from .models import ASSETS, PREFERRED, PREFERRED_WHOLEBODY
 
 
 def _battery_mw() -> float | None:
@@ -51,9 +51,9 @@ def _feeds(sess: runtime.Session) -> dict:
 
 
 def bench_target(target: str, seconds: float = 10.0, iters: int = 300, power: bool = True,
-                 perf_mode: str = "burst") -> dict:
-    asset = ASSETS[PREFERRED[target]]
-    sess = runtime.load(f"MoveNet ({asset.precision})", asset.onnx_path, target, perf_mode)
+                 perf_mode: str = "burst", family: str = "MoveNet") -> dict:
+    asset = ASSETS[(PREFERRED if family == "MoveNet" else PREFERRED_WHOLEBODY)[target]]
+    sess = runtime.load(f"{family} ({asset.precision})", asset.onnx_path, target, perf_mode)
     feeds = _feeds(sess)
     for _ in range(20):
         sess.run(feeds)
@@ -87,7 +87,7 @@ def bench_target(target: str, seconds: float = 10.0, iters: int = 300, power: bo
     pick = lambda q: round(lat[min(len(lat) - 1, int(q * len(lat)))], 3)  # noqa: E731
     label = sess.label + (f" · {perf_mode.replace('_', ' ')}" if target == "npu" else "")
     return {
-        "target": target, "label": label, "precision": asset.precision, "perf_mode": perf_mode,
+        "model": family, "target": target, "label": label, "precision": asset.precision, "perf_mode": perf_mode,
         "full_offload": sess.full_offload, "load_s": round(sess.compile_s, 2),
         "p50_ms": pick(0.5), "p90_ms": pick(0.9), "p99_ms": pick(0.99),
         "max_fps": round(1000 / max(1e-6, pick(0.5))),
@@ -99,32 +99,34 @@ def bench_target(target: str, seconds: float = 10.0, iters: int = 300, power: bo
 def run(seconds: float = 10.0, targets: list[str] | None = None) -> dict:
     targets = targets or runtime.available_targets()
     res = {"machine": runtime.machine_info(), "when": time.strftime("%Y-%m-%dT%H:%M:%S"),
-           "model": "MoveNet (Qualcomm AI Hub v0.63.0)", "results": []}
+           "model": "MoveNet + RTMPose-Body2d (Qualcomm AI Hub v0.63.0)", "results": []}
     idle = _battery_mw()
     res["idle_battery_watts"] = round(idle / 1000, 2) if idle else None
     runs = []
     for t in targets:
         # On the NPU also measure a power-saving HTP clock policy: at 30 fps the NPU idles
         # ~97% of each frame, so a lower clock can cut power while staying real-time.
-        runs += [(t, "burst"), (t, "power_saver")] if t == "npu" else [(t, "burst")]
-    for t, mode in runs:
+        runs += [("MoveNet", t, "burst"), ("MoveNet", t, "power_saver")] if t == "npu" else [("MoveNet", t, "burst")]
+    if any(ASSETS[k].present() for k in PREFERRED_WHOLEBODY.values()):
+        runs += [("RTMPose", t, "burst") for t in targets]   # precision-mode cascade model
+    for fam, t, mode in runs:
         try:
-            res["results"].append(bench_target(t, seconds, perf_mode=mode))
+            res["results"].append(bench_target(t, seconds, perf_mode=mode, family=fam))
         except Exception as e:
-            res["results"].append({"target": t, "perf_mode": mode, "error": str(e)[:300]})
+            res["results"].append({"model": fam, "target": t, "perf_mode": mode, "error": str(e)[:300]})
     store.save_bench(res)
     return res
 
 
 def markdown(res: dict) -> str:
-    rows = ["| Compute unit | Precision | p50 latency | p99 latency | Max FPS | CPU load @30 fps | Battery draw @30 fps |",
-            "|---|---|---:|---:|---:|---:|---:|"]
+    rows = ["| Model | Compute unit | Precision | p50 latency | p99 latency | Max FPS | CPU load @30 fps | Battery draw @30 fps |",
+            "|---|---|---|---:|---:|---:|---:|---:|"]
     for r in res["results"]:
         if "error" in r:
-            rows.append(f"| {r['target']} | — | error: {r['error'][:60]} | | | | |")
+            rows.append(f"| {r.get('model', '')} | {r['target']} | — | error: {r['error'][:60]} | | | | |")
             continue
         w = f"{r['battery_watts_at_30fps']} W" if r["battery_watts_at_30fps"] else "n/a"
-        rows.append(f"| {r['label']} | {r['precision']} | {r['p50_ms']} ms | {r['p99_ms']} ms | "
+        rows.append(f"| {r['model']} | {r['label']} | {r['precision']} | {r['p50_ms']} ms | {r['p99_ms']} ms | "
                     f"{r['max_fps']} | {r['cpu_percent_at_30fps']}% | {w} |")
     m = res["machine"]
     return (f"Machine: {m['processor']} · {m['os']} · Python {m['python']} ({m['python_arch']}) · "

@@ -49,6 +49,12 @@ $("#btnDemo").onclick = async () => { await stage.useUrl("demo/squat.webm"); sou
 $("#btnSource").onclick = () => { stage.stopSource(); $("#stageEmpty").hidden = false; $("#btnSource").hidden = true; };
 $("#optPrivacy").onchange = e => { stage.privacy = e.target.checked; $("#stage").classList.toggle("privacy", stage.privacy); stage.draw(); };
 $("#optCrop").onchange = e => { stage.showCrop = e.target.checked; stage.draw(); };
+function setPrecisionUI(on) { $("#optPrecision").checked = on; stage.size = on ? 288 : 192; }
+$("#optPrecision").onchange = async e => {
+  try { const r = await api("/api/precision", { on: e.target.checked }); setPrecisionUI(r.on);
+    if (r.on) showCue(`Precision: ${r.model.model} on ${SHORT[r.model.target]}`, true); }
+  catch (err) { setPrecisionUI(false); showCue(`Precision mode unavailable: ${err.message.slice(0, 80)}`, false); }
+};
 $("#optVoice").onchange = e => setVoice(e.target.checked);
 
 // ---------------------------------------------------------------- tabs -----
@@ -92,7 +98,8 @@ function onFrame(r) {
   $("#tUnit").textContent = SHORT[p.target] || p.label;
   $("#tUnit").title = p.label;
   $("#tUnit").className = p.target === "npu" ? "npu" : "";
-  $("#tInfer").textContent = p.infer_ms != null ? `${p.infer_ms} ms` : "—";
+  $("#tInfer").textContent = p.infer_ms != null ? `${p.infer_ms}${p.wb_ms != null ? ` + ${p.wb_ms}` : ""} ms` : "—";
+  $("#tInfer").title = p.wb_ms != null ? "MoveNet + RTMPose-WholeBody" : "MoveNet";
   $("#tEngine").textContent = `${p.engine_ms} ms`;
   $("#tFps").textContent = p.fps ? `${p.fps} fps` : "—";
   $("#tCpu").textContent = `${p.cpu}%`;
@@ -135,7 +142,9 @@ async function startActivity(kind, id, opts = {}) {
   if (!stage.running) { await startCamera(); if (!stage.running) return; }
   show("coach");
   const target_reps = opts.reps || 10;
-  await api("/api/start", { kind, id, side: opts.side || "auto", target_reps });
+  const started = await api("/api/start", { kind, id, side: opts.side || "auto", target_reps }).catch(e => { showCue(e.message.slice(0, 120), false); return null; });
+  if (!started) return;
+  setPrecisionUI(!!started.precision);
   const spec = kind === "exercise" ? exercise(id) : test(id);
   state.active = { kind, id, target_reps, sides: spec.sides, spec };
   state.halfSaid = state.doneSaid = false;
@@ -280,7 +289,7 @@ $("#btnSpeakSum").onclick = () => speak($("#sumText").dataset.speak || $("#sumTe
 
 // --------------------------------------------------------------- picker ----
 function renderExercises() {
-  const regionIcon = { knee: "Knee", functional: "Function", shoulder: "Shoulder", elbow: "Elbow", hip: "Hip" };
+  const regionIcon = { knee: "Knee", functional: "Function", shoulder: "Shoulder", elbow: "Elbow", hip: "Hip", ankle: "Ankle · precision" };
   $("#exGrid").innerHTML = state.lib.exercises.map(e => `
     <button class="ex" data-id="${e.id}"><span class="tag">${regionIcon[e.region] || e.region}</span>
       <b>${esc(e.name)}</b><span>${esc(e.purpose)}</span></button>`).join("");
@@ -434,7 +443,7 @@ async function loadPerf() {
     ["Local LLM", s.llm.available ? `${s.llm.model} @ ${s.llm.base}` : "not running"],
   ].map(([k, v]) => `<dt>${k}</dt><dd>${esc(v)}</dd>`).join("");
   $("#modelTable").innerHTML = `<tr><th>Model</th><th>Precision</th><th>Role</th><th>License</th><th>Status</th></tr>` +
-    s.models.map(x => `<tr><td>${esc(x.source)}</td><td>${esc(x.precision)}</td><td>${x.precision === "float" ? "GPU / CPU pose" : "NPU pose (quantized)"}</td><td>${esc(x.license)}</td><td>${x.present ? "✓ installed" : "missing"}</td></tr>`).join("") +
+    s.models.map(x => `<tr><td>${esc(x.source)}</td><td>${esc(x.precision)}</td><td>${x.key.startsWith("rtmpose") ? "Precision mode: 133 keypoints incl. feet" : ""}${x.key.startsWith("rtmpose") ? "" : (x.precision === "float" ? "GPU / CPU pose" : "NPU pose (quantized)")}${x.key.startsWith("rtmpose") ? (x.precision === "float" ? " · GPU/CPU" : " · NPU") : ""}</td><td>${esc(x.license)}</td><td>${x.present ? "✓ installed" : "missing"}</td></tr>`).join("") +
     `<tr><td>Local LLM (llama.cpp / GenieX / Foundry Local)</td><td>Q4_0 / w4a16</td><td>Summaries, plan import, Q&amp;A</td><td>per model</td><td>${s.llm.available ? "✓ " + esc(s.llm.model) : "optional"}</td></tr>`;
   const last = await api("/api/bench");
   if (last.results) renderBench(last);
@@ -460,16 +469,16 @@ function renderBench(res) {
   const chart = (title, key, unit, better, fmt) => {
     const d = document.createElement("div");
     d.innerHTML = `<h4>${title}</h4>`;
-    d.append(barChart(ok.map(r => ({ label: r.target.toUpperCase() + (r.perf_mode === "power_saver" ? " saver" : ""), value: r[key] })), { unit, better, fmt, height: 40 + 50 * ok.length }));
+    d.append(barChart(ok.map(r => ({ label: `${r.model || "MoveNet"} ${r.target.toUpperCase()}${r.perf_mode === "power_saver" ? " saver" : ""}`, value: r[key] })), { unit, better, fmt, height: 30 + 44 * ok.length }));
     g.append(d);
   };
   chart("Inference latency (p50)", "p50_ms", " ms", "lower", v => v.toFixed(2));
   chart("App CPU load while coaching @30 fps", "cpu_percent_at_30fps", "%", "lower", v => v.toFixed(1));
   if (ok.some(r => r.battery_watts_at_30fps)) chart("Battery draw @30 fps", "battery_watts_at_30fps", " W", "lower", v => v.toFixed(1));
   else chart("Max throughput", "max_fps", " fps", "higher", v => Math.round(v));
-  $("#benchTable").innerHTML = `<tr><th>Unit</th><th>Precision</th><th>p50</th><th>p99</th><th>Max FPS</th><th>CPU @30fps</th><th>Battery @30fps</th><th>Full offload</th></tr>` +
-    res.results.map(r => r.error ? `<tr><td>${r.target}${r.perf_mode === "power_saver" ? " (power saver)" : ""}</td><td colspan="7" class="muted">${esc(r.error.slice(0, 120))}</td></tr>` :
-      `<tr><td>${esc(r.label)}</td><td>${r.precision}</td><td>${r.p50_ms} ms</td><td>${r.p99_ms} ms</td><td>${r.max_fps}</td><td>${r.cpu_percent_at_30fps}%</td><td>${r.battery_watts_at_30fps ?? "n/a"}${r.battery_watts_at_30fps ? " W" : ""}</td><td>${r.full_offload === true ? "✓" : "—"}</td></tr>`).join("");
+  $("#benchTable").innerHTML = `<tr><th>Model</th><th>Unit</th><th>Precision</th><th>p50</th><th>p99</th><th>Max FPS</th><th>CPU @30fps</th><th>Battery @30fps</th><th>Full offload</th></tr>` +
+    res.results.map(r => r.error ? `<tr><td>${r.model || "MoveNet"}</td><td>${r.target}${r.perf_mode === "power_saver" ? " (power saver)" : ""}</td><td colspan="7" class="muted">${esc(r.error.slice(0, 120))}</td></tr>` :
+      `<tr><td>${esc(r.model || "MoveNet")}</td><td>${esc(r.label)}</td><td>${r.precision}</td><td>${r.p50_ms} ms</td><td>${r.p99_ms} ms</td><td>${r.max_fps}</td><td>${r.cpu_percent_at_30fps}%</td><td>${r.battery_watts_at_30fps ?? "n/a"}${r.battery_watts_at_30fps ? " W" : ""}</td><td>${r.full_offload === true ? "✓" : "—"}</td></tr>`).join("");
 }
 
 // -------------------------------------------------------------- profile ----

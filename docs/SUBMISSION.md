@@ -20,6 +20,7 @@ PunarGati turns a Snapdragon-powered HP laptop into a physiotherapist's eyes:
 
 **Use of Snapdragon / Qualcomm AI Hub**
 - **MoveNet from Qualcomm AI Hub** (v0.63.0, w8a16 quantized) runs on the **Hexagon NPU** through ONNX Runtime's **QNN execution provider** (`onnxruntime-qnn` 2.x plugin EP, HTP backend). The session is created in strict mode (`session.disable_cpu_ep_fallback`), which proves 100% of operators are on the NPU. AI Hub profiles this at about 1 ms per frame on Snapdragon X Elite. The compiled QNN context is cached for instant relaunch.
+- **Precision mode** cascades a second AI Hub model, **RTMPose-Body2d (w8a16, 133 keypoints)**, on the NPU after MoveNet (about 1.8 ms on X Elite per AI Hub). It gives more accurate joints and feet tracking for ankle exercises.
 - The same model runs on the **Adreno GPU** (QNN GPU backend) and the CPU for a built-in benchmark that compares latency, CPU load and battery draw.
 - The optional local LLM is **Qwen3-4B-Instruct-2507 Q4_0**, the GGUF that Qualcomm AI Hub lists for Qwen3-4B, served by llama.cpp's native ARM64 build (i8mm-optimised). Any OpenAI-compatible local server works, including GenieX or Foundry Local on the NPU.
 

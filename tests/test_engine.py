@@ -81,6 +81,17 @@ class Kinematics(unittest.TestCase):
         f = K.compute(skeleton(score=0.1), 0.0)
         self.assertTrue(math.isnan(f.get("knee_flex_l")))
 
+    def test_foot_pitch_from_wholebody_feet(self):
+        k = np.zeros((23, 3), np.float32)
+        k[:17] = skeleton()
+        for heel, toe, ankle in ((19, 17, 15), (22, 20, 16)):
+            k[heel] = [k[ankle, 0] - 10, k[ankle, 1] + 10, 0.9]
+            k[toe] = [k[ankle, 0] + 60, k[ankle, 1] + 10, 0.9]
+        self.assertAlmostEqual(K.compute(k, 0).get("foot_pitch_l"), 0.0, delta=0.5)
+        k[19, 1] -= 35  # heel lifted
+        self.assertAlmostEqual(K.compute(k, 0).get("foot_pitch_l"), math.degrees(math.atan2(35, 70)), delta=0.5)
+        self.assertTrue(math.isnan(K.compute(skeleton(), 0).get("foot_pitch_l")))  # no feet without precision
+
     def test_view_detection(self):
         self.assertEqual(K.compute(skeleton(side_view=True), 0).view, "side")
         self.assertEqual(K.compute(skeleton(side_view=False), 0).view, "front")

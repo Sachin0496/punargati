@@ -53,9 +53,9 @@ export function barChart(rows, { width = 520, height = 200, unit = "", better = 
   rows.forEach((r, i) => {
     const y = 10 + i * (bh + 12);
     svg.append(el("text", { x: 0, y: y + bh / 2 + 5, class: "axis lbl" }, r.label));
-    const w = typeof r.value === "number" ? Math.max(2, (r.value / max) * (width - 190)) : 0;
-    svg.append(el("rect", { x: 110, y, width: w, height: bh, rx: 6, fill: r.value === best ? "#2dd4bf" : "#475569" }));
-    svg.append(el("text", { x: 110 + w + 8, y: y + bh / 2 + 5, class: "val" },
+    const w = typeof r.value === "number" ? Math.max(2, (r.value / max) * (width - 240)) : 0;
+    svg.append(el("rect", { x: 160, y, width: w, height: bh, rx: 6, fill: r.value === best ? "#2dd4bf" : "#475569" }));
+    svg.append(el("text", { x: 160 + w + 8, y: y + bh / 2 + 5, class: "val" },
       typeof r.value === "number" ? `${fmt(r.value)}${unit}` : "n/a"));
   });
   return svg;

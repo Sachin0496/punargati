@@ -203,6 +203,16 @@ def compute(kps: np.ndarray, t: float) -> Frame:
     else:
         ang["stand_height_px"] = nan
 
+    # Foot pitch (needs precision mode's feet): heel->big-toe angle from horizontal,
+    # ~0 deg flat, rising as the heel lifts. COCO-WholeBody rows 17..22.
+    for S, heel, toe in (("l", 19, 17), ("r", 22, 20)):
+        if len(kps) > 22 and kps[heel, 2] >= VIS and kps[toe, 2] >= VIS:
+            dx = abs(float(kps[toe, 0] - kps[heel, 0]))
+            dy = float(kps[toe, 1] - kps[heel, 1])
+            ang[f"foot_pitch_{S}"] = math.degrees(math.atan2(dy, max(dx, 1.0)))
+        else:
+            ang[f"foot_pitch_{S}"] = nan
+
     # Foot lift (for balance tests): vertical ankle separation in body heights.
     scale = body_scale(kps)
     if _ok(kps, "left_ankle", "right_ankle") and scale > 0:

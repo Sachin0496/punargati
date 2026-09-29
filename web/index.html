@@ -50,6 +50,7 @@
         <div class="stage-tools">
           <label title="Show only the skeleton — nothing of your room is displayed"><input type="checkbox" id="optPrivacy"> Privacy view</label>
           <label><input type="checkbox" id="optVoice" checked> Voice</label>
+          <label title="Cascade RTMPose-WholeBody (133 keypoints, feet) after MoveNet on the NPU"><input type="checkbox" id="optPrecision"> Precision</label>
           <label title="Show the region the model is looking at"><input type="checkbox" id="optCrop"> Tracker box</label>
           <button id="btnSource" class="ghost small" hidden>Change source</button>
         </div>
@@ -173,7 +174,7 @@
       </div>
     </div>
     <div class="card">
-      <div class="row-between"><h3>Benchmark: NPU vs GPU vs CPU</h3><button id="btnBench" class="primary">Run benchmark (~40 s)</button></div>
+      <div class="row-between"><h3>Benchmark: NPU vs GPU vs CPU</h3><button id="btnBench" class="primary">Run benchmark (~1–2 min)</button></div>
       <p class="muted" id="benchInfo">Measures raw latency and the cost of coaching at a steady 30 fps. On battery, Windows reports the discharge rate too.</p>
       <div class="bench-grid" id="benchCharts"></div>
       <div class="table-wrap"><table class="table" id="benchTable"></table></div>

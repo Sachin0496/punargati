@@ -93,12 +93,14 @@ class Exercise:
     steps: tuple = ()
     purpose: str = ""
     metric_factory: Callable | None = None  # stateful metric, fresh per session
+    needs: str | None = None                # "wholebody" = requires precision mode (feet)
 
     def public(self) -> dict:
         return {
             "id": self.id, "name": self.name, "region": self.region, "sides": self.sides,
             "view": self.view, "target": self.target, "rest": self.rest, "enter": self.enter,
             "rom_label": self.rom_label, "steps": list(self.steps), "purpose": self.purpose,
+            "needs": self.needs,
         }
 
 
@@ -193,6 +195,19 @@ LIBRARY: dict[str, Exercise] = {e.id: e for e in [
                "Lift one leg out to the side, toes pointing forward",
                "Keep your body upright, lower slowly"),
         purpose="Hip stability after hip replacement; reduces fall risk in older adults.",
+    ),
+    Exercise(
+        id="heel_raise", name="Heel raise (calf raise)", region="ankle", sides="both", view="side",
+        metric=_mean_sides("foot_pitch"), rest=8, enter=14, target=25, needs="wholebody",
+        rom_label="Ankle plantarflexion (foot angle)", ideal_rep_s=2.5,
+        rules=[
+            Rule("straight_knees", lambda f, s: _mean_sides("knee_flex")(f, s) > 25),
+            Rule("stand_tall", _gt("trunk_lean", 12)),
+        ],
+        steps=("Stand side-on to the laptop, holding a chair for balance",
+               "Rise onto your toes, lifting both heels as high as is comfortable",
+               "Lower slowly. Precision mode tracks your feet (RTMPose on the NPU)"),
+        purpose="Calf strength and ankle mobility after ankle fracture or Achilles injury; balance and fall prevention.",
     ),
     Exercise(
         id="marching", name="Standing march", region="hip", sides="each", view="side",

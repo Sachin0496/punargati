@@ -35,7 +35,7 @@ Sources are in [docs/CLINICAL_BASIS.md](docs/CLINICAL_BASIS.md).
 
 ## What it does
 
-- **Live coaching for 8 exercises**: mini squat, sit-to-stand, seated knee extension, shoulder forward raise, shoulder side raise, elbow curl, standing hip abduction and standing march. Reps are counted per side, with range of motion, tempo and a quality score for every rep.
+- **Live coaching for 9 exercises**: mini squat, sit-to-stand, seated knee extension, shoulder forward raise, shoulder side raise, elbow curl, standing hip abduction, standing march and heel raise. Reps are counted per side, with range of motion, tempo and a quality score for every rep.
 - **Form correction** while you move, spoken and shown on screen: "keep your chest up", "push your knees outward", "keep your elbow straight", "don't shrug"… It also tells you when to turn side-on or step back into frame.
 - **Clinical screening tests**, timed and scored on-device:
   - 30-second chair stand (CDC STEADI fall-risk thresholds by age and sex)
@@ -85,6 +85,7 @@ The browser handles camera, drawing and speech, and Python does all the AI. So t
 |---|---|---|---|
 | **MoveNet** (w8a16 quantized) | [Qualcomm AI Hub](https://aihub.qualcomm.com/models/movenet) v0.63.0, Apache-2.0 | **Hexagon NPU** (QNN EP · HTP). AI Hub reports 100% of layers on the NPU for Snapdragon X Elite | Always-on 17-keypoint pose |
 | **MoveNet** (float) | Qualcomm AI Hub v0.63.0 | Adreno GPU (QNN GPU backend) or CPU | Comparison and fallback |
+| **RTMPose-Body2d** (w8a16) | [Qualcomm AI Hub](https://aihub.qualcomm.com/models/rtmpose_body2d) v0.63.0, Apache-2.0 | **Hexagon NPU**, cascaded after MoveNet. AI Hub profiles 1.8 ms with all layers on the NPU | *Precision mode*: 133 COCO-WholeBody keypoints, more accurate body joints, and **feet** for the heel-raise / ankle exercise |
 | **Qwen3-4B-Instruct-2507** Q4_0 *(optional)* | GGUF listed in [AI Hub's Qwen3-4B release assets](https://huggingface.co/qualcomm/Qwen3-4B-Instruct-2507) | Oryon CPU via llama.cpp (win-arm64). Any OpenAI-compatible local server works: GenieX/QAIRT on NPU, Foundry Local, LM Studio | Summaries, prescription → plan, Q&A |
 
 Model downloads are pinned to an AI Hub release and **SHA-256 verified** ([punargati/models.py](punargati/models.py)).
@@ -121,6 +122,7 @@ No webcam? Click **Try the demo clip** on the start screen. It runs the same pip
 ## Engineering notes
 
 - **The NPU is provable, not just claimed.** The NPU session is first created with `session.disable_cpu_ep_fallback=1`. If that succeeds, every operator is on the Hexagon NPU, and the UI shows it. The compiled QNN context is cached (`ep.context_enable`) so later launches skip compilation. A stale cache is detected and rebuilt, and fallback goes NPU → GPU → CPU with the reason shown on screen.
+- **Two-model NPU cascade.** In *Precision mode*, MoveNet tracks the person and supplies a box. RTMPose-WholeBody then re-estimates 133 keypoints from a 192×256 patch, decoded with SimCC argmax. Its body joints replace MoveNet's wherever they are confident, and its feet enable ankle measurement. Both models run on the NPU, and the quantized RTMPose matches the float model to 0.7 px.
 - **Quantized I/O done right.** The w8a16 AI Hub build takes and returns `uint16` tensors. Scales and zero-points are read from AI Hub's `metadata.json`, so inputs and outputs are quantized and dequantized exactly.
 - **Accuracy from a 192 px model.** MoveNet's crop tracker keeps the person filling the model's view. Keypoints are One-Euro filtered in body-scale units, so smoothing doesn't depend on camera distance. Angles are computed in isotropic pixel space.
 - **Rep counting that doesn't lie.** Each side runs its own hysteresis state machine (rest → moving → rest) with minimum-duration and timeout guards. Form rules must hold for several consecutive frames before they fire. ROM tests take a median-of-5 so a single-frame glitch can't set a "record".

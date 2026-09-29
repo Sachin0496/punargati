@@ -20,7 +20,7 @@ from . import bench, llm as llm_mod, plan as plan_mod, report, runtime, store
 from .assessments import TESTS
 from .engine import Engine
 from .exercises import LIBRARY
-from .models import REPO_ROOT, status as model_status
+from .models import ASSETS, REPO_ROOT, status as model_status
 from .pose import INPUT, Crop
 
 log = logging.getLogger("punargati.server")
@@ -59,6 +59,8 @@ class App:
             "load_errors": getattr(self.engine.pose, "load_errors", []),
             "models": model_status(),
             "llm": llm_mod.llm.status(),
+            "precision": self.engine.precision_status(),
+            "wholebody_available": any(ASSETS[k].present() for k in ("rtmpose-w8a16", "rtmpose-float")),
         }
 
 
@@ -156,8 +158,9 @@ class Handler(BaseHTTPRequestHandler):
         try:
             if p == "/api/frame":
                 q = {k: v[0] for k, v in urllib.parse.parse_qs(url.query).items()}
-                if len(body) != FRAME_BYTES:
-                    return self._json({"error": f"expected {FRAME_BYTES} bytes, got {len(body)}"}, 400)
+                n = int(round((len(body) / 4) ** 0.5))
+                if n * n * 4 != len(body) or not 128 <= n <= 512:
+                    return self._json({"error": f"expected a square RGBA crop (e.g. {FRAME_BYTES} bytes), got {len(body)}"}, 400)
                 crop = Crop(float(q["x"]), float(q["y"]), float(q["size"]))
                 out = eng.process(body, crop, int(q["w"]), int(q["h"]), float(q["t"]))
                 return self._json(out)
@@ -166,6 +169,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json(eng.start(b["kind"], b["id"], b.get("side", "auto"), b.get("target_reps", 10)))
             if p == "/api/stop":
                 return self._json(eng.stop() or {"saved": False})
+            if p == "/api/precision":
+                return self._json(eng.set_precision(bool(self._jbody().get("on"))))
             if p == "/api/compute":
                 return self._json(eng.set_target(self._jbody().get("target", "npu")))
             if p == "/api/profile":

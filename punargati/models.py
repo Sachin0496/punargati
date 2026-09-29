@@ -71,11 +71,29 @@ ASSETS: dict[str, ModelAsset] = {
         onnx_file="movenet.onnx", license="Apache-2.0",
         source="Qualcomm AI Hub · Movenet v0.63.0 · ONNX float",
     ),
+    # RTMPose-Body2d (COCO-WholeBody, 133 keypoints incl. feet and hands) — "precision
+    # mode": cascaded after MoveNet, which supplies the person box. Downloaded by setup
+    # (not vendored: ~70 MB of weights each).
+    "rtmpose-w8a16": ModelAsset(
+        key="rtmpose-w8a16", model_id="rtmpose_body2d", precision="w8a16",
+        url=f"{AIHUB}/rtmpose_body2d/releases/v0.63.0/rtmpose_body2d-onnx-w8a16.zip",
+        sha256="a8f7723d37768b2425e83e6b0dbd5e1125d8f17bd43f3c5a315c12bab0b6b67c",
+        onnx_file="rtmpose_body2d.onnx", license="Apache-2.0",
+        source="Qualcomm AI Hub · RTMPose-Body2d v0.63.0 · ONNX w8a16",
+    ),
+    "rtmpose-float": ModelAsset(
+        key="rtmpose-float", model_id="rtmpose_body2d", precision="float",
+        url=f"{AIHUB}/rtmpose_body2d/releases/v0.63.0/rtmpose_body2d-onnx-float.zip",
+        sha256="89b3f876ead25721c26edd5135114a92a8f9a83ef3f4deef7ecf370d10d7ff26",
+        onnx_file="rtmpose_body2d.onnx", license="Apache-2.0",
+        source="Qualcomm AI Hub · RTMPose-Body2d v0.63.0 · ONNX float",
+    ),
 }
 
 # Which build each compute target prefers. HTP is fastest on integer graphs;
 # the QNN GPU backend and the CPU EP want float.
 PREFERRED = {"npu": "movenet-w8a16", "gpu": "movenet-float", "cpu": "movenet-float"}
+PREFERRED_WHOLEBODY = {"npu": "rtmpose-w8a16", "gpu": "rtmpose-float", "cpu": "rtmpose-float"}
 
 
 def download(asset: ModelAsset, force: bool = False) -> Path:

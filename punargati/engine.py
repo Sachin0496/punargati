@@ -13,7 +13,7 @@ from . import store
 from .assessments import TESTS, Assessment
 from .exercises import LIBRARY, RepCounter
 from .kinematics import KeypointSmoother, compute
-from .pose import Crop, PoseEstimator, init_crop, next_crop
+from .pose import Crop, PoseEstimator, WholeBody, init_crop, next_crop
 
 CUE_COOLDOWN_S = 4.0
 
@@ -42,7 +42,7 @@ class CpuMeter:
 
 class Engine:
     def __init__(self, target: str = "npu", perf_mode: str = "burst"):
-        self.lock = threading.Lock()
+        self.lock = threading.RLock()
         self.perf_mode = perf_mode
         self.pose = PoseEstimator(target, perf_mode)
         self.smoother = KeypointSmoother()
@@ -60,17 +60,39 @@ class Engine:
         self.fps = 0.0
         self.last_t = None
         self.target_reps = 10
+        self.wholebody: WholeBody | None = None
+        self.precision = False
 
     # -- compute unit ---------------------------------------------------------
     def set_target(self, target: str) -> dict:
         with self.lock:
             self.pose.load(target, self.perf_mode)
+            if self.wholebody is not None:
+                try:
+                    self.wholebody = WholeBody(self.pose.session.target, self.perf_mode)
+                except Exception:
+                    self.wholebody, self.precision = None, False
         return self.pose.session.describe()
+
+    def set_precision(self, on: bool) -> dict:
+        """Cascade RTMPose-WholeBody after MoveNet (loaded lazily on the same unit)."""
+        with self.lock:
+            if on and self.wholebody is None:
+                self.wholebody = WholeBody(self.pose.session.target, self.perf_mode)
+            self.precision = bool(on)
+            self.smoother.reset()
+        return self.precision_status()
+
+    def precision_status(self) -> dict:
+        wb = self.wholebody
+        return {"on": self.precision, "model": wb.session.describe() if wb else None}
 
     # -- activity lifecycle ---------------------------------------------------
     def start(self, kind: str, item_id: str, side: str = "auto", target_reps: int = 10) -> dict:
         with self.lock:
             if kind == "exercise":
+                if LIBRARY[item_id].needs == "wholebody" and not self.precision:
+                    self.set_precision(True)   # feet need RTMPose; raises if unavailable
                 self.activity = RepCounter(LIBRARY[item_id], side)
             elif kind == "assessment":
                 self.activity = Assessment(item_id, store.get_profile())
@@ -83,7 +105,7 @@ class Engine:
             self.last_cue.clear()
             self.missing_since = self.view_bad_since = None
             self.smoother.reset()
-        return {"ok": True, "kind": kind, "id": item_id}
+        return {"ok": True, "kind": kind, "id": item_id, "precision": self.precision}
 
     def stop(self, save: bool = True) -> dict | None:
         with self.lock:
@@ -128,11 +150,21 @@ class Engine:
         t0 = time.perf_counter()
         raw = self.pose.infer_crop(rgba, crop)
         infer_ms = self.pose.session.stats().get("last_ms")
+        full = np.zeros((23, 3), np.float32)      # 17 body + 6 feet (feet only in precision mode)
+        full[:17] = raw
+        wb_ms = None
+        if self.precision and self.wholebody is not None:
+            wb = self.wholebody.infer(rgba, crop, raw)
+            wb_ms = self.wholebody.session.stats().get("last_ms")
+            if wb is not None:
+                better = wb[:17, 2] >= 0.3
+                full[:17][better] = wb[:17][better]
+                full[17:23] = wb[17:23]
         if self.last_t is not None and t < self.last_t:  # video looped / seeked back
             self.smoother.reset()
         self.last_t = t
         scale = max(w, h)
-        kps = self.smoother(raw, t, scale)
+        kps = self.smoother(full, t, scale)
         conf = float(np.mean(raw[:, 2]))
         nxt = next_crop(raw, w, h) if conf > 0.15 else init_crop(w, h)
         f = compute(kps, t)
@@ -168,7 +200,8 @@ class Engine:
             "activity": activity,
             "events": events,
             "perf": {
-                "target": s.target, "label": s.label, "infer_ms": infer_ms,
+                "target": s.target, "label": s.label, "infer_ms": infer_ms, "wb_ms": wb_ms,
+                "precision": self.precision,
                 "p50_ms": st.get("p50_ms"), "p95_ms": st.get("p95_ms"),
                 "engine_ms": round((time.perf_counter() - t0) * 1000, 2),
                 "fps": round(self.fps, 1), "cpu": self.cpu.sample(),

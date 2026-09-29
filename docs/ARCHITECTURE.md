@@ -14,6 +14,8 @@ browser                                         python engine (127.0.0.1:8765)
 video frame ─► drawImage(crop → 192×192) ─► POST /api/frame (147 KB RGBA + crop rect)
                                                  │ RGBA → RGB → [0,1] → uint16 quantize (AI Hub scale/zero-point)
                                                  │ MoveNet on Hexagon NPU (QNN HTP)       ~1 ms
+                                                 │ [precision] RTMPose-WholeBody on NPU on the
+                                                 │   MoveNet person box (192×256)        ~1.8 ms
                                                  │ dequantize → map crop → frame pixels
                                                  │ next crop (MoveNet crop tracker)
                                                  │ One-Euro filter (body-scale units)
@@ -29,6 +31,7 @@ The browser keeps one request in flight. At about 5 ms per round trip on the NPU
 
 | Workload | Unit | How |
 |---|---|---|
+| Wholebody pose (precision mode) | **Hexagon NPU** | RTMPose-Body2d w8a16, same ladder; 288 px crop from the browser |
 | Pose (continuous) | **Hexagon NPU** | `onnxruntime-qnn` 2.x plugin EP, `backend_path=QnnHtp.dll`, `htp_performance_mode=burst`, strict no-CPU-fallback session, QNN context cache |
 | Pose (comparison) | Adreno GPU | same plugin EP, `QnnGpu.dll`, float model |
 | Pose (fallback) | Oryon CPU | ORT CPU EP, float model, 4 intra-op threads |

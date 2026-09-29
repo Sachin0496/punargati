@@ -10,3 +10,4 @@ models/**/*.npu_ctx*
 models/**/*.gpu_ctx*
 .DS_Store
 .claude/
+models/rtmpose-*/
