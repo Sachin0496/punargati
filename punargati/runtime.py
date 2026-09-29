@@ -190,8 +190,9 @@ def _qnn_session(model: Path, target: str, perf_mode: str, strict: bool, cache: 
     if _qnn_registered:
         so.add_provider_for_devices(_qnn_devices(target), _qnn_options(target, perf_mode))
         return ort.InferenceSession(str(model), sess_options=so)
-    return ort.InferenceSession(str(model), sess_options=so,
-                                providers=[(QNN, _qnn_options(target, perf_mode)), "CPUExecutionProvider"])
+    # 1.x build: listing the CPU EP explicitly conflicts with disable_cpu_ep_fallback.
+    providers = [(QNN, _qnn_options(target, perf_mode))] + ([] if strict else ["CPUExecutionProvider"])
+    return ort.InferenceSession(str(model), sess_options=so, providers=providers)
 
 
 def _warm(sess: ort.InferenceSession) -> None:
