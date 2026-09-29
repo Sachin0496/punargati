@@ -14,13 +14,13 @@
     <div><b>PunarGati</b><span>पुनर्गति · movement, restored</span></div>
   </div>
   <nav id="tabs" role="tablist">
-    <button data-view="coach" class="active">Coach</button>
-    <button data-view="tests">Tests</button>
-    <button data-view="progress">Progress</button>
-    <button data-view="plan">Plan</button>
-    <button data-view="ask">Ask coach</button>
+    <button data-view="coach" class="active" data-t>Coach</button>
+    <button data-view="tests" data-t>Tests</button>
+    <button data-view="progress" data-t>Progress</button>
+    <button data-view="plan" data-t>Plan</button>
+    <button data-view="ask" data-t>Ask coach</button>
     <button data-view="perf">NPU &amp; performance</button>
-    <button data-view="profile">Profile</button>
+    <button data-view="profile" data-t>Profile</button>
   </nav>
   <div class="status">
     <span id="npuBadge" class="badge" title="Where the pose model is running">starting…</span>
@@ -36,23 +36,23 @@
         <video id="video" playsinline muted></video>
         <canvas id="overlay"></canvas>
         <div class="stage-empty" id="stageEmpty">
-          <h2>Your physiotherapist's eyes, at home.</h2>
-          <p>Pose tracking runs on the Snapdragon Hexagon NPU. Video never leaves this PC.</p>
+          <h2 data-t>Your physiotherapist's eyes, at home.</h2>
+          <p data-t>Pose tracking runs on the Snapdragon Hexagon NPU. Video never leaves this PC.</p>
           <div class="row">
-            <button id="btnCam" class="primary">Start camera</button>
-            <label class="btn">Use a video file<input type="file" accept="video/*" id="fileInput" hidden></label>
-            <button id="btnDemo" class="ghost">Try the demo clip</button>
+            <button id="btnCam" class="primary" data-t>Start camera</button>
+            <label class="btn"><span data-t>Use a video file</span><input type="file" accept="video/*" id="fileInput" hidden></label>
+            <button id="btnDemo" class="ghost" data-t>Try the demo clip</button>
           </div>
-          <p class="tiny">Place the laptop 2–3 m away so your whole body is in frame.</p>
+          <p class="tiny" data-t>Place the laptop 2–3 m away so your whole body is in frame.</p>
         </div>
         <div class="cue" id="cue" aria-live="polite"></div>
         <div class="big-overlay" id="bigOverlay"></div>
         <div class="stage-tools">
-          <label title="Show only the skeleton — nothing of your room is displayed"><input type="checkbox" id="optPrivacy"> Privacy view</label>
-          <label><input type="checkbox" id="optVoice" checked> Voice</label>
-          <label title="Cascade RTMPose-WholeBody (133 keypoints, feet) after MoveNet on the NPU"><input type="checkbox" id="optPrecision"> Precision</label>
-          <label title="Show the region the model is looking at"><input type="checkbox" id="optCrop"> Tracker box</label>
-          <button id="btnSource" class="ghost small" hidden>Change source</button>
+          <label title="Show only the skeleton — nothing of your room is displayed"><input type="checkbox" id="optPrivacy"> <span data-t>Privacy view</span></label>
+          <label><input type="checkbox" id="optVoice" checked> <span data-t>Voice</span></label>
+          <label title="Cascade RTMPose-WholeBody (133 keypoints, feet) after MoveNet on the NPU"><input type="checkbox" id="optPrecision"> <span data-t>Precision</span></label>
+          <label title="Show the region the model is looking at"><input type="checkbox" id="optCrop"> <span data-t>Tracker box</span></label>
+          <button id="btnSource" class="ghost small" hidden data-t>Change source</button>
         </div>
       </div>
       <div class="telemetry" id="telemetry">
@@ -68,14 +68,14 @@
     <aside class="panel">
       <div id="pickPanel">
         <div id="planToday"></div>
-        <h3>Exercises</h3>
+        <h3 data-t>Exercises</h3>
         <div class="ex-grid" id="exGrid"></div>
       </div>
 
       <div id="livePanel" hidden>
         <div class="live-head">
           <div><span class="pill" id="liveKind">Exercise</span><h3 id="liveName">—</h3></div>
-          <button id="btnStop" class="primary">Finish &amp; save</button>
+          <button id="btnStop" class="primary" data-t>Finish &amp; save</button>
         </div>
 
         <div id="liveExercise">
@@ -103,7 +103,7 @@
           <div id="testResult"></div>
         </div>
 
-        <details class="howto" open><summary>How to do it</summary><ol id="steps"></ol><p class="tiny" id="purpose"></p></details>
+        <details class="howto" open><summary data-t>How to do it</summary><ol id="steps"></ol><p class="tiny" id="purpose"></p></details>
       </div>
     </aside>
   </section>
@@ -111,8 +111,8 @@
   <!-- TESTS -->
   <section id="view-tests" class="view">
     <div class="view-head">
-      <h2>Standardised clinical tests</h2>
-      <p>The same screening tests a physiotherapist runs with a stopwatch and goniometer — timed, counted and measured on-device.</p>
+      <h2 data-t>Standardised clinical tests</h2>
+      <p data-t>The same screening tests a physiotherapist runs with a stopwatch and goniometer — timed, counted and measured on-device.</p>
     </div>
     <div class="cards" id="testCards"></div>
   </section>
@@ -120,27 +120,27 @@
   <!-- PROGRESS -->
   <section id="view-progress" class="view">
     <div class="view-head row-between">
-      <div><h2>Recovery progress</h2><p>Every number here was measured on this PC and stored only in <code>./data</code>.</p></div>
-      <div class="row"><button id="btnReport" class="primary">Open report for my physio</button></div>
+      <div><h2 data-t>Recovery progress</h2><p>Every number here was measured on this PC and stored only in <code>./data</code>.</p></div>
+      <div class="row"><button id="btnReport" class="primary" data-t>Open report for my physio</button></div>
     </div>
     <div class="kpis" id="kpis"></div>
     <div class="cards" id="progressCards"></div>
-    <h3>Recent sessions</h3>
+    <h3 data-t>Recent sessions</h3>
     <div class="table-wrap"><table class="table" id="sessionTable"></table></div>
   </section>
 
   <!-- PLAN -->
   <section id="view-plan" class="view">
-    <div class="view-head"><h2>Home exercise plan</h2><p>Paste the prescription from your physiotherapist. The on-device LLM turns it into a plan (with a rule-based parser as backup).</p></div>
+    <div class="view-head"><h2 data-t>Home exercise plan</h2><p>Paste the prescription from your physiotherapist. The on-device LLM turns it into a plan (with a rule-based parser as backup).</p></div>
     <div class="two-col">
       <div class="card">
-        <h3>Current plan</h3>
+        <h3 data-t>Current plan</h3>
         <div id="planList"></div>
       </div>
       <div class="card">
-        <h3>Import prescription</h3>
+        <h3 data-t>Import prescription</h3>
         <textarea id="rxText" rows="7" placeholder="e.g.&#10;Mini squats 3 x 10, twice a day&#10;Seated knee extension right leg 2 sets of 15&#10;Shoulder forward raise left 10 reps daily&#10;30 second chair stand test weekly"></textarea>
-        <div class="row"><button id="btnParse" class="primary">Read prescription</button><span class="muted" id="parseInfo"></span></div>
+        <div class="row"><button id="btnParse" class="primary" data-t>Read prescription</button><span class="muted" id="parseInfo"></span></div>
         <div id="parsePreview"></div>
       </div>
     </div>
@@ -149,12 +149,12 @@
   <!-- ASK -->
   <section id="view-ask" class="view">
     <div class="view-head row-between">
-      <div><h2>Ask your coach</h2><p>Answers come from a language model running locally on this PC, grounded in your measured sessions.</p></div>
+      <div><h2 data-t>Ask your coach</h2><p>Answers come from a language model running locally on this PC, grounded in your measured sessions.</p></div>
       <span class="badge" id="llmBadge">checking…</span>
     </div>
     <div class="chat" id="chatLog"></div>
     <div class="chips" id="chatChips"></div>
-    <form class="chat-in" id="chatForm"><input id="chatInput" autocomplete="off" placeholder="How is my knee bend improving?"><button class="primary">Ask</button></form>
+    <form class="chat-in" id="chatForm"><input id="chatInput" autocomplete="off" placeholder="How is my knee bend improving?"><button class="primary" data-t>Ask</button></form>
   </section>
 
   <!-- PERF -->
@@ -187,17 +187,17 @@
 
   <!-- PROFILE -->
   <section id="view-profile" class="view">
-    <div class="view-head"><h2>Profile</h2><p>Used for age-based test norms and to personalise coaching. Stored locally.</p></div>
+    <div class="view-head"><h2 data-t>Profile</h2><p>Used for age-based test norms and to personalise coaching. Stored locally.</p></div>
     <form class="card form" id="profileForm">
-      <label>Name<input name="name"></label>
-      <label>Age<input name="age" type="number" min="5" max="110"></label>
-      <label>Sex<select name="sex"><option value="">—</option><option value="female">Female</option><option value="male">Male</option><option value="other">Other</option></select></label>
-      <label>Condition<input name="condition" placeholder="e.g. Right knee replacement (TKR), week 4"></label>
-      <label>Affected side<select name="affected_side"><option value="">—</option><option>left</option><option>right</option><option>both</option></select></label>
-      <label>Physiotherapist<input name="physio_name"></label>
-      <label>Coaching language<select name="language" id="profLang"></select></label>
-      <label class="wide">Notes<textarea name="notes" rows="3"></textarea></label>
-      <div class="row wide"><button class="primary">Save profile</button><span class="muted" id="profSaved"></span><span class="muted" id="voiceInfo"></span></div>
+      <label><span data-t>Name</span><input name="name"></label>
+      <label><span data-t>Age</span><input name="age" type="number" min="5" max="110"></label>
+      <label><span data-t>Sex</span><select name="sex"><option value="">—</option><option value="female">Female</option><option value="male">Male</option><option value="other">Other</option></select></label>
+      <label><span data-t>Condition</span><input name="condition" placeholder="e.g. Right knee replacement (TKR), week 4"></label>
+      <label><span data-t>Affected side</span><select name="affected_side"><option value="">—</option><option>left</option><option>right</option><option>both</option></select></label>
+      <label><span data-t>Physiotherapist</span><input name="physio_name"></label>
+      <label><span data-t>Coaching language</span><select name="language" id="profLang"></select></label>
+      <label class="wide"><span data-t>Notes</span><textarea name="notes" rows="3"></textarea></label>
+      <div class="row wide"><button class="primary" data-t>Save profile</button><span class="muted" id="profSaved"></span><span class="muted" id="voiceInfo"></span></div>
     </form>
   </section>
 </main>
@@ -206,9 +206,9 @@
   <form method="dialog">
     <h2 id="sumTitle">Session saved</h2>
     <div class="sum-grid" id="sumGrid"></div>
-    <h3>Coach summary <span class="badge small" id="sumSource"></span></h3>
+    <h3><span data-t>Coach summary</span> <span class="badge small" id="sumSource"></span></h3>
     <p id="sumText" class="sum-text">Writing summary on-device…</p>
-    <div class="row"><button type="button" id="btnSpeakSum" class="ghost">Read aloud</button><button class="primary">Done</button></div>
+    <div class="row"><button type="button" id="btnSpeakSum" class="ghost" data-t>Read aloud</button><button class="primary" data-t>Done</button></div>
   </form>
 </dialog>
 

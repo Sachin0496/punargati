@@ -1,5 +1,5 @@
 import { Stage } from "./stage.js";
-import { LANGS, setLang, getLang, setVoice, cueText, speak, speakCue, voiceFor, localSummary } from "./i18n.js";
+import { LANGS, setLang, getLang, setVoice, cueText, speak, speakCue, voiceFor, localSummary, tr } from "./i18n.js";
 import { lineChart, barChart, ring } from "./charts.js";
 
 const $ = s => document.querySelector(s);
@@ -12,7 +12,15 @@ const api = async (path, body) => {
   return j;
 };
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-const SIDE = { l: "Left", r: "Right", b: "" };
+const SIDE_EN = { l: "Left", r: "Right", b: "" };
+const SIDE = new Proxy(SIDE_EN, { get: (o, k) => (o[k] ? tr(o[k]) : o[k]) });
+const ofTarget = (n, each) => getLang() === "hi" ? `${n} में से${each ? " (हर तरफ़)" : ""}` : `of ${n}${each ? " per side" : ""}`;
+function applyUI() {
+  document.querySelectorAll("[data-t]").forEach(el => {
+    if (!el.dataset.en) el.dataset.en = el.textContent.trim();
+    el.textContent = tr(el.dataset.en);
+  });
+}
 const UNIT_CLASS = { npu: "npu", gpu: "gpu", cpu: "cpu" };
 const SHORT = { npu: "Hexagon NPU", gpu: "Adreno GPU", cpu: "CPU" };
 
@@ -153,17 +161,17 @@ async function startActivity(kind, id, opts = {}) {
   $("#pickPanel").hidden = true;
   $("#livePanel").hidden = false;
   $("#liveKind").textContent = kind === "exercise" ? `Exercise · ${spec.view === "any" ? "any view" : spec.view + " view"}` : `Clinical test · ${spec.view} view`;
-  $("#liveName").textContent = spec.name;
+  $("#liveName").textContent = tr(spec.name);
   $("#liveExercise").hidden = kind !== "exercise";
   $("#liveTest").hidden = kind !== "assessment";
-  $("#steps").innerHTML = spec.steps.map(s => `<li>${esc(s)}</li>`).join("");
-  $("#purpose").textContent = spec.purpose || spec.measures || "";
+  $("#steps").innerHTML = spec.steps.map(s => `<li>${esc(tr(s))}</li>`).join("");
+  $("#purpose").textContent = tr(spec.purpose || spec.measures || "");
   if (kind === "exercise") {
     $("#repCount").textContent = "0";
-    $("#repTarget").textContent = `of ${target_reps}${spec.sides === "each" ? " per side" : ""}`;
+    $("#repTarget").textContent = ofTarget(target_reps, spec.sides === "each");
     $("#repHistory").innerHTML = "";
-    $("#lastRep").innerHTML = '<span class="muted">Complete a rep to see its range, tempo and quality.</span>';
-    $("#gaugeLabel").textContent = spec.rom_label;
+    $("#lastRep").innerHTML = `<span class="muted">${esc(tr("Complete a rep to see its range, tempo and quality."))}</span>`;
+    $("#gaugeLabel").textContent = tr(spec.rom_label);
     ring($("#repRing"), 0);
   } else {
     $("#testResult").innerHTML = "";
@@ -195,23 +203,23 @@ function renderActivity(a) {
     const u = unitOf(spec?.rom_label);
     const shown = v == null ? "—" : (spec?.id === "knee_extension" ? `${Math.round(Math.max(0, 90 - v))}° from straight` : `${Math.round(v)}${u}`);
     $("#gaugeVal").textContent = `${side && SIDE[side] ? SIDE[side] + " " : ""}${shown}`;
-    $("#gaugeGoal").textContent = spec?.id === "knee_extension" ? "goal: straight (≤10°)" : `goal ${a.goal}${u}`;
+    $("#gaugeGoal").textContent = spec?.id === "knee_extension" ? `${tr("goal")}: 0–10°` : `${tr("goal")} ${a.goal}${u}`;
     const moving = side && a.phase[side] === "moving";
-    $("#phase").textContent = v == null ? "Not visible" : moving ? "Moving" : "Rest";
+    $("#phase").textContent = tr(v == null ? "Not visible" : moving ? "Moving" : "Rest");
     $("#phase").className = moving ? "moving" : "";
   } else {
     const labels = { ready: "Get into position", countdown: "Get ready…", running: "Go!", done: "Done" };
-    $("#testState").textContent = labels[a.state] || a.state;
+    $("#testState").textContent = tr(labels[a.state] || a.state);
     if (a.state === "ready") {
-      $("#testTimer").textContent = a.id === "chair_stand_30s" ? "Sit on the chair, whole body in view" : "Stand in view to begin";
+      $("#testTimer").textContent = tr(a.id === "chair_stand_30s" ? "Sit on the chair, whole body in view" : "Stand in view to begin");
     } else if (a.state === "countdown") {
       $("#testBig").textContent = Math.ceil(a.countdown);
       $("#testUnit").textContent = "";
       $("#testTimer").textContent = "";
     } else if (a.state === "running") {
-      if (a.id === "chair_stand_30s") { $("#testBig").textContent = a.stands; $("#testUnit").textContent = "stands"; $("#testTimer").textContent = `${Math.ceil(a.remaining)} s left`; }
-      else if (a.id === "single_leg_stance") { $("#testBig").textContent = (a.elapsed || 0).toFixed(1); $("#testUnit").textContent = "seconds on one leg"; $("#testTimer").textContent = a.elapsed ? "" : "Lift one foot to start the clock"; }
-      else { const b = Math.max(a.best.l || 0, a.best.r || 0); $("#testBig").textContent = `${Math.round(b)}°`; $("#testUnit").textContent = "best so far"; $("#testTimer").textContent = `${Math.ceil(a.remaining)} s left`; }
+      if (a.id === "chair_stand_30s") { $("#testBig").textContent = a.stands; $("#testUnit").textContent = tr("stands"); $("#testTimer").textContent = `${Math.ceil(a.remaining)} ${tr("s left")}`; }
+      else if (a.id === "single_leg_stance") { $("#testBig").textContent = (a.elapsed || 0).toFixed(1); $("#testUnit").textContent = tr("seconds on one leg"); $("#testTimer").textContent = a.elapsed ? "" : tr("Lift one foot to start the clock"); }
+      else { const b = Math.max(a.best.l || 0, a.best.r || 0); $("#testBig").textContent = `${Math.round(b)}°`; $("#testUnit").textContent = tr("best so far"); $("#testTimer").textContent = `${Math.ceil(a.remaining)} ${tr("s left")}`; }
     }
   }
 }
@@ -222,11 +230,11 @@ function renderLastRep(rep) {
   const romTxt = spec?.id === "knee_extension" ? `${rep.rom}° short` : `${rep.rom}${unitOf(spec?.rom_label)}`;
   $("#lastRep").innerHTML = `
     <div class="grid3">
-      <div><span>Quality</span><b class="q" style="color:${cls === "" ? "var(--good)" : cls === "mid" ? "var(--warn)" : "var(--bad)"}">${q}</b></div>
-      <div><span>${esc(spec?.rom_label || "Range")}</span><b>${romTxt}</b></div>
-      <div><span>Tempo</span><b>${rep.duration}s</b></div>
+      <div><span>${tr("Quality")}</span><b class="q" style="color:${cls === "" ? "var(--good)" : cls === "mid" ? "var(--warn)" : "var(--bad)"}">${q}</b></div>
+      <div><span>${esc(tr(spec?.rom_label || "Range"))}</span><b>${romTxt}</b></div>
+      <div><span>${tr("Tempo")}</span><b>${rep.duration}s</b></div>
     </div>
-    ${rep.faults.length ? `<div class="faults">⚠ ${rep.faults.map(f => esc(cueText(f, "en"))).join(" · ")}</div>` : ""}`;
+    ${rep.faults.length ? `<div class="faults">⚠ ${rep.faults.map(f => esc(cueText(f, getLang() === "hi" ? "hi" : "en"))).join(" · ")}</div>` : ""}`;
 }
 function addHistory(rep) {
   const i = document.createElement("i");
@@ -236,7 +244,7 @@ function addHistory(rep) {
   $("#repHistory").append(i);
 }
 function renderTestResult(r) {
-  const flagTxt = { ok: "Within typical range", below_average: "Below average", fall_risk: "Fall-risk flag", limited: "Limited range" }[r.flag] || "Recorded";
+  const flagTxt = tr({ ok: "Within typical range", below_average: "Below average", fall_risk: "Fall-risk flag", limited: "Limited range" }[r.flag] || "Recorded");
   let ref = "";
   if (r.threshold != null) ref = `Fall-risk threshold for your age/sex: below ${r.threshold}`;
   else if (r.reference != null) ref = r.unit === "degrees" ? `Reference ${r.reference}° · you reached ${r.percent_of_reference}%` : `Typical for your age: ~${r.reference} s`;
@@ -267,25 +275,25 @@ $("#btnStop").onclick = async () => {
 
 async function openSummary(rec) {
   const d = $("#summaryDlg");
-  $("#sumTitle").textContent = `${rec.name} — saved`;
+  $("#sumTitle").textContent = `${tr(rec.name)} — ${tr("saved")}`;
   let cells = [];
   if (rec.kind === "exercise") {
     const s = rec.summary;
     const sides = Object.entries(s.by_side);
-    cells.push(["Reps", s.reps], ["Avg quality", `${s.avg_quality}/100`]);
-    sides.forEach(([k, v]) => cells.push([`Best ${k === "both" ? "" : k} ${s.rom_label.toLowerCase()}`.replace(/\s+/g, " "), `${v.best_rom}${unitOf(s.rom_label)}`]));
+    cells.push([tr("Reps"), s.reps], [tr("Avg quality"), `${s.avg_quality}/100`]);
+    sides.forEach(([k, v]) => cells.push([`${tr("Best")} ${k === "both" ? "" : tr(k[0].toUpperCase() + k.slice(1))} ${getLang() === "hi" ? tr(s.rom_label) : s.rom_label.toLowerCase()}`.replace(/\s+/g, " "), `${v.best_rom}${unitOf(s.rom_label)}`]));
   } else {
     const r = rec.result;
-    cells.push(["Score", `${r.score} ${r.unit}`], ["Flag", r.flag || "—"]);
+    cells.push([tr("Score"), `${r.score} ${r.unit}`], [tr("Flag"), r.flag || "—"]);
   }
-  cells.push(["Computed on", SHORT[rec.compute.target] || rec.compute.label]);
+  cells.push([tr("Computed on"), SHORT[rec.compute.target] || rec.compute.label]);
   $("#sumGrid").innerHTML = cells.slice(0, 6).map(([k, v]) => `<div><b>${esc(v)}</b><span>${esc(k)}</span></div>`).join("");
   $("#sumText").textContent = "Writing summary on-device…";
   $("#sumSource").textContent = "";
   d.showModal();
   try {
     const s = await api("/api/summary", { id: rec.id, lang: getLang() });
-    const local = getLang() !== "en" && s.text_lang !== getLang() ? localSummary(s.facts, getLang()) : null;
+    const local = getLang() !== "en" && s.text_lang !== getLang() ? localSummary({ ...s.facts, name: tr(s.facts.name) }, getLang()) : null;
     $("#sumText").textContent = local ? `${local}\n\nCoach note (English): ${s.text}` : s.text;
     $("#sumText").dataset.speak = local || s.text;
     $("#sumSource").textContent = s.source === "llm" ? `on-device LLM · ${s.model}${s.latency_s ? ` · ${s.latency_s}s` : ""}` : "template (no LLM running)";
@@ -297,17 +305,17 @@ $("#btnSpeakSum").onclick = () => speak($("#sumText").dataset.speak || $("#sumTe
 function renderExercises() {
   const regionIcon = { knee: "Knee", functional: "Function", shoulder: "Shoulder", elbow: "Elbow", hip: "Hip", ankle: "Ankle · precision" };
   $("#exGrid").innerHTML = state.lib.exercises.map(e => `
-    <button class="ex" data-id="${e.id}"><span class="tag">${regionIcon[e.region] || e.region}</span>
-      <b>${esc(e.name)}</b><span>${esc(e.purpose)}</span></button>`).join("");
+    <button class="ex" data-id="${e.id}"><span class="tag">${esc(tr(regionIcon[e.region] || e.region))}</span>
+      <b>${esc(tr(e.name))}</b><span>${esc(tr(e.purpose))}</span></button>`).join("");
   $$("#exGrid .ex").forEach(b => (b.onclick = () => startActivity("exercise", b.dataset.id)));
 }
-function planName(it) { return it.kind === "exercise" ? exercise(it.id)?.name : test(it.id)?.name; }
+function planName(it) { return tr(it.kind === "exercise" ? exercise(it.id)?.name : test(it.id)?.name); }
 function renderPlanToday() {
   const items = state.plan.items || [];
   if (!items.length) { $("#planToday").innerHTML = ""; return; }
-  $("#planToday").innerHTML = `<div class="plan-today"><h3>Today's plan from ${esc(state.profile.physio_name || "your physio")}</h3>
+  $("#planToday").innerHTML = `<div class="plan-today"><h3>${esc(tr("Today's plan from"))} ${esc(state.profile.physio_name || tr("your physio"))}</h3>
     ${items.map((it, i) => `<div class="plan-item"><span>${esc(planName(it))} <span class="muted">${it.kind === "exercise" ? `${it.sets}×${it.reps}` : "test"}${it.side !== "auto" ? " · " + esc(it.side) : ""}</span></span>
-    <button class="ghost small" data-i="${i}">Start</button></div>`).join("")}</div>`;
+    <button class="ghost small" data-i="${i}">${esc(tr("Start"))}</button></div>`).join("")}</div>`;
   $$("#planToday button").forEach(b => (b.onclick = () => {
     const it = items[+b.dataset.i];
     startActivity(it.kind, it.id, { reps: it.reps, side: it.side === "both" ? "auto" : it.side });
@@ -317,9 +325,9 @@ function renderPlanToday() {
 // ---------------------------------------------------------------- tests ----
 function renderTests() {
   $("#testCards").innerHTML = state.lib.tests.map(t => `
-    <div class="card"><div class="row-between"><h3>${esc(t.name)}</h3><span class="badge small">${t.view} view · ${t.duration}s</span></div>
-      <p class="muted">${esc(t.measures)}</p><ol>${t.steps.map(s => `<li>${esc(s)}</li>`).join("")}</ol>
-      <button class="primary" data-id="${t.id}">Start test</button></div>`).join("");
+    <div class="card"><div class="row-between"><h3>${esc(tr(t.name))}</h3><span class="badge small">${t.view} view · ${t.duration}s</span></div>
+      <p class="muted">${esc(tr(t.measures))}</p><ol>${t.steps.map(s => `<li>${esc(tr(s))}</li>`).join("")}</ol>
+      <button class="primary" data-id="${t.id}">${esc(tr("Start test"))}</button></div>`).join("");
   $$("#testCards button").forEach(b => (b.onclick = () => startActivity("assessment", b.dataset.id)));
 }
 
@@ -330,7 +338,7 @@ async function loadProgress() {
   $("#kpis").innerHTML = [
     [p.total_sessions, "sessions"], [p.total_reps, "reps measured"], [p.streak_days, "day streak"],
     [p.days.length ? p.days[p.days.length - 1].avg_quality ?? "—" : "—", "latest avg quality"],
-  ].map(([v, l]) => `<div><b>${esc(v)}</b><span>${l}</span></div>`).join("");
+  ].map(([v, l]) => `<div><b>${esc(v)}</b><span>${esc(tr(l))}</span></div>`).join("");
   const cards = $("#progressCards");
   cards.innerHTML = "";
   if (!p.series.length) cards.innerHTML = `<div class="card"><p class="muted">No sessions yet. Do an exercise or a test and your recovery curve appears here.</p></div>`;
@@ -493,6 +501,9 @@ fillLangSelect($("#langSel"));
 fillLangSelect($("#profLang"));
 function applyLang(l) {
   setLang(l);
+  document.documentElement.lang = l === "hi" ? "hi" : "en";
+  applyUI();
+  if (state.lib) { renderExercises(); renderTests(); renderPlanToday(); }
   $("#langSel").value = l;
   $("#profLang").value = l;
   const v = voiceFor(l);

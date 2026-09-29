@@ -47,7 +47,7 @@ Sources are in [docs/CLINICAL_BASIS.md](docs/CLINICAL_BASIS.md).
 - **Recovery curves**: best range of motion per session, test scores over time and day streaks. A **printable report** goes to the physiotherapist.
 - **Prescription import**: paste the physio's note ("mini squats 3×10 twice a day, R knee LAQ 2 sets of 15…"). A rule engine and the local LLM turn it into a plan with one-tap *Start* buttons.
 - **Ask your coach**: a local LLM answers questions using your measured data. Red-flag symptoms like swelling, sharp pain or dizziness always trigger a stop-and-see-your-physio message.
-- **7 coaching languages**: English, हिन्दी, தமிழ், తెలుగు, ಕನ್ನಡ, मराठी and বাংলা. Voice cues use Windows' offline speech voices.
+- **7 coaching languages**: English, हिन्दी, தமிழ், తెలుగు, ಕನ್ನಡ, मराठी and বাংলা. Voice cues use Windows' offline speech voices, and summaries use vetted translations. The patient-facing screens (exercises, steps, tests, results) are also fully translated into **Hindi**.
 - **An "NPU & performance" page** that shows which compute unit runs the model and whether 100% of the graph is on the NPU. It also runs a benchmark comparing NPU, GPU and CPU on latency, CPU load and battery draw.
 
 | Clinical tests | Recovery progress | Prescription → plan |

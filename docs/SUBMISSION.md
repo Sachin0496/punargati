@@ -16,7 +16,7 @@ PunarGati turns a Snapdragon-powered HP laptop into a physiotherapist's eyes:
 - Live coaching for 9 prescribed exercises: reps per side, range of motion, tempo, a quality score, and spoken form corrections ("keep your chest up", "push your knees out", "don't shrug"). It's fatigue-aware: when range drops across a set, it suggests a rest.
 - Standard screening tests, timed and scored automatically: the 30-second chair stand (CDC STEADI fall-risk norms), single-leg stance, and shoulder/knee range of motion against AAOS references.
 - Recovery curves, a printable physio report, prescription import (physio's note → one-tap plan), and a Q&A coach grounded in the patient's own data, with red-flag safety escalation.
-- 7 coaching languages with offline Windows voices. It works with no internet, and no video is ever stored or transmitted.
+- 7 coaching languages with offline Windows voices, and a full Hindi interface for the patient-facing screens. It works with no internet, and no video is ever stored or transmitted.
 
 **Use of Snapdragon / Qualcomm AI Hub**
 - **MoveNet from Qualcomm AI Hub** (v0.63.0, w8a16 quantized) runs on the **Hexagon NPU** through ONNX Runtime's **QNN execution provider** (`onnxruntime-qnn` 2.x plugin EP, HTP backend). The session is created in strict mode (`session.disable_cpu_ep_fallback`), so when it loads, 100% of operators are proven to run on the NPU. Any fallback is verified with ORT profiling and shown honestly in the UI. AI Hub profiles this at about 1 ms per frame on Snapdragon X Elite. The compiled QNN context is cached for instant relaunch.
