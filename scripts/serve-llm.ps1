@@ -6,4 +6,5 @@ param([int]$Port = 8080, [int]$Threads = 8, [string]$Model = "Qwen3-4B-Instruct-
 $LlmRoot = Join-Path $env:USERPROFILE "llm"
 $Gguf = Join-Path "$LlmRoot\models" $Model
 if (-not (Test-Path $Gguf)) { throw "Missing $Gguf - run scripts\setup-llm.ps1 first" }
-& "$LlmRoot\llama.cpp\llama-server.exe" -m $Gguf --alias qwen3-4b-instruct -t $Threads -c 8192 -fa on --no-mmap --jinja --host 127.0.0.1 --port $Port
+$Alias = [IO.Path]::GetFileNameWithoutExtension($Model).ToLower()   # shown in the app, e.g. qwen3-4b-instruct-2507-q4_0
+& "$LlmRoot\llama.cpp\llama-server.exe" -m $Gguf --alias $Alias -t $Threads -c 8192 -fa on --no-mmap --jinja --host 127.0.0.1 --port $Port

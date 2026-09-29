@@ -46,6 +46,8 @@ jobs:
       # then PunarGati's client must detect it on loopback and write an LLM summary.
       - name: local LLM via setup-llm.ps1 / serve-llm.ps1
         shell: powershell
+        env:
+          PYTHONIOENCODING: utf-8
         run: |
           powershell -ExecutionPolicy Bypass -File scripts\setup-llm.ps1 -ModelUrl "https://huggingface.co/unsloth/Qwen3-0.6B-GGUF/resolve/main/Qwen3-0.6B-Q4_0.gguf" -ModelFile "Qwen3-0.6B-Q4_0.gguf"
           Start-Process powershell -ArgumentList "-ExecutionPolicy","Bypass","-File","scripts\serve-llm.ps1","-Model","Qwen3-0.6B-Q4_0.gguf","-Threads","4" -WindowStyle Hidden
