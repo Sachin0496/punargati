@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+.venv/
+data/
+*.part
+*.tmp
+models/**/*_ctx.onnx
+models/**/*_ctx*.bin
+models/**/*.npu_ctx*
+models/**/*.gpu_ctx*
+.DS_Store
+.claude/

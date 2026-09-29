@@ -1,0 +1,3 @@
+# Any machine (CPU fallback): judges can run the full app on a regular laptop.
+numpy>=1.26.4
+onnxruntime>=1.24.2
