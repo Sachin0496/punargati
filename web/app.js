@@ -171,6 +171,8 @@ async function startActivity(kind, id, opts = {}) {
     $("#testTimer").textContent = "";
   }
   speakCue("start_ex");
+  // Keep the laptop awake mid-session: nobody touches the keyboard while exercising.
+  try { state.wakeLock = await navigator.wakeLock?.request("screen"); } catch { /* not critical */ }
 }
 
 function renderActivity(a) {
@@ -251,6 +253,8 @@ $("#btnStop").onclick = async () => {
   btn.disabled = true;
   try {
     const rec = await api("/api/stop", {});
+    state.wakeLock?.release?.().catch(() => {});
+    state.wakeLock = null;
     $("#livePanel").hidden = true;
     $("#pickPanel").hidden = false;
     stage.focus = null;
