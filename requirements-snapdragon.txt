@@ -1,5 +1,6 @@
-# Snapdragon X / X2 (Windows on ARM64, native ARM64 Python 3.11-3.14):
+# Snapdragon X / X2 (Windows on ARM64, native ARM64 Python 3.11-3.14).
 # onnxruntime-qnn 2.x is Qualcomm's plugin execution provider for the Hexagon NPU.
+# Exact pair recommended in the onnxruntime-qnn v2.6.0 release notes (QAIRT 2.50).
 numpy>=1.26.4
-onnxruntime>=1.24.2
-onnxruntime-qnn>=2.6.0
+onnxruntime==1.27.0
+onnxruntime-qnn==2.6.0
