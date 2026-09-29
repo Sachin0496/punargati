@@ -143,7 +143,10 @@ class Handler(BaseHTTPRequestHandler):
         ctype = mimetypes.guess_type(f.name)[0] or "application/octet-stream"
         if ctype.startswith("text/") or ctype in ("application/javascript",):
             ctype += "; charset=utf-8"
-        return self._send(200, f.read_bytes(), ctype)
+        csp = {"Content-Security-Policy": "default-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; "
+                                          "style-src 'self' 'unsafe-inline'; connect-src 'self'; object-src 'none'; "
+                                          "frame-ancestors 'none'"}
+        return self._send(200, f.read_bytes(), ctype, csp if rel.endswith(".html") else None)
 
     def do_POST(self):
         if not self._host_ok():
