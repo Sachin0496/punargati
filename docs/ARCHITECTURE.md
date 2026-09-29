@@ -71,7 +71,7 @@ Frames are never written anywhere.
 
 ## Robustness details
 
-- **QNN session ladder**: cached context → strict + cache build → strict → permissive. The UI shows which rung succeeded (`full_offload`). Stale caches, for example after a QAIRT upgrade, are deleted and rebuilt.
+- **QNN session ladder**: cached context → strict + cache build → strict → permissive. The permissive rung is accepted only if an ORT profiling run shows the QNN EP executing at least one node, because a failed backend otherwise falls back to the CPU silently. The UI shows which rung succeeded (`full_offload`). Stale caches, for example after a QAIRT upgrade, are deleted and rebuilt.
 - **Timebase**: the client's clock (`video.currentTime` or `performance.now()`) drives filters and rep timing, so recorded videos replay correctly at any speed. A backwards jump (looping video) resets the filter.
 - **Cue throttling**: each cue type and side speaks at most once every 4 s, and rep counts interrupt lower-priority speech.
 - **No-LLM mode**: summaries are composed from measured facts. Indic-language summaries always use vetted templates because small local models produce unreliable Indic prose. Setting `PUNARGATI_LLM_INDIC=1` allows a capable model to write them.

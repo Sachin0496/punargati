@@ -1,5 +1,7 @@
 # PunarGati · पुनर्गति
 
+[![ci](https://github.com/Sachin0496/punargati/actions/workflows/ci.yml/badge.svg)](https://github.com/Sachin0496/punargati/actions/workflows/ci.yml) · tested on Linux and **native Windows on ARM64** · MIT
+
 **Your physiotherapist's eyes at home.** PunarGati is an on-device AI physiotherapy coach for Snapdragon-powered HP PCs (OmniBook X, OmniBook Ultra, EliteBook Ultra and other Copilot+ PCs). It watches you exercise through the laptop camera, counts reps, measures joint angles like a goniometer, corrects your form out loud in 7 Indian languages, runs standard clinical screening tests, and writes a progress report you can hand to your physiotherapist.
 
 Pose tracking runs on the **Snapdragon Hexagon NPU** through ONNX Runtime's QNN execution provider, using two **Qualcomm AI Hub** models: MoveNet runs always, and RTMPose-WholeBody joins it in precision mode. Session summaries, prescription import and Q&A come from a **local LLM**. No video, health data or prompt ever leaves the PC. It needs no internet connection, no account and no subscription.
@@ -131,6 +133,7 @@ No webcam? Click **Try the demo clip** on the start screen. It runs the same pip
 
 ## Engineering notes
 
+- **CI on native Windows on ARM64.** Every push runs `setup.ps1` on a GitHub `windows-11-arm` runner: native ARM64 Python, `win_arm64` wheels, QNN plugin registration, the 1.x fallback route and the full test suite. That runner has no NPU, which is how we caught and fixed a case where a failed QNN backend silently ran on the CPU. Permissive sessions are now accepted only if ORT profiling shows QNN executing operators.
 - **The NPU is provable, not just claimed.** The NPU session is first created with `session.disable_cpu_ep_fallback=1`. If that succeeds, every operator is on the Hexagon NPU, and the UI shows it. The compiled QNN context is cached (`ep.context_enable`) so later launches skip compilation. A stale cache is detected and rebuilt, and fallback goes NPU → GPU → CPU with the reason shown on screen.
 - **Two-model NPU cascade.** In *Precision mode*, MoveNet tracks the person and supplies a box. RTMPose-WholeBody then re-estimates 133 keypoints from a 192×256 patch, decoded with SimCC argmax. Its body joints replace MoveNet's wherever they are confident, and its feet enable ankle measurement. Both models run on the NPU, and the quantized RTMPose matches the float model to 0.7 px.
 - **Quantized I/O done right.** The w8a16 AI Hub build takes and returns `uint16` tensors. Scales and zero-points are read from AI Hub's `metadata.json`, so inputs and outputs are quantized and dequantized exactly.
