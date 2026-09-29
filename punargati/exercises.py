@@ -114,7 +114,7 @@ def _lt(key: str, thr: float):
 
 LIBRARY: dict[str, Exercise] = {e.id: e for e in [
     Exercise(
-        id="squat", name="Mini squat", region="knee", sides="both", view="any",
+        id="squat", name="Mini squat", region="knee", sides="both", view="side",
         metric=_mean_sides("knee_flex"), rest=20, enter=40, target=75,
         rom_label="Knee flexion", ideal_rep_s=2.5,
         rules=[
@@ -122,7 +122,7 @@ LIBRARY: dict[str, Exercise] = {e.id: e for e in [
             Rule("knees_out", lambda f, s: f.get("knee_gap_ratio") < 0.7 and _mean_sides("knee_flex")(f, s) > 35,
                  views=("front",)),
         ],
-        steps=("Stand with feet hip-width apart, hands forward for balance",
+        steps=("Stand side-on to the laptop, feet hip-width apart, hands forward for balance",
                "Bend knees and push hips back as if sitting on a chair",
                "Go only as low as is comfortable, then stand tall"),
         purpose="Quadriceps and gluteal strength after knee injury or replacement; fall prevention.",
@@ -175,11 +175,11 @@ LIBRARY: dict[str, Exercise] = {e.id: e for e in [
         purpose="Frozen shoulder and impingement rehab; tracks abduction range over weeks.",
     ),
     Exercise(
-        id="elbow_curl", name="Elbow bend (curl)", region="elbow", sides="each", view="any",
+        id="elbow_curl", name="Elbow bend (curl)", region="elbow", sides="each", view="side",
         metric=_side("elbow_flex"), rest=35, enter=75, target=120,
         rom_label="Elbow flexion",
         rules=[Rule("elbow_close", _gt("shoulder", 40, sided=True))],
-        steps=("Stand or sit tall with the upper arm by your side",
+        steps=("Stand or sit side-on to the laptop, upper arm by your side",
                "Bend the elbow bringing the hand to the shoulder",
                "Lower fully. A water bottle works as a light weight"),
         purpose="Elbow stiffness after fracture or immobilisation; general arm strength.",
@@ -195,11 +195,11 @@ LIBRARY: dict[str, Exercise] = {e.id: e for e in [
         purpose="Hip stability after hip replacement; reduces fall risk in older adults.",
     ),
     Exercise(
-        id="marching", name="Standing march", region="hip", sides="each", view="any",
+        id="marching", name="Standing march", region="hip", sides="each", view="side",
         metric=_side("hip_flex"), rest=20, enter=45, target=70,
         rom_label="Hip flexion", ideal_rep_s=1.5, min_rep_s=0.4,
         rules=[Rule("stand_tall", _gt("trunk_lean", 15))],
-        steps=("Stand tall, holding a chair if needed",
+        steps=("Stand side-on to the laptop, holding a chair if needed",
                "Lift one knee towards hip height, then lower",
                "Alternate legs at a steady pace"),
         purpose="Balance, hip-flexor strength and gait retraining.",

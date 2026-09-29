@@ -54,6 +54,8 @@ Sources: CDC STEADI *Assessment: 30-Second Chair Stand*; Jones CJ, Rikli RE, Bea
 
 **Rep quality** = range reached ÷ target range × a tempo factor (0.85 if the rep is faster than 45% of ideal tempo) × a form factor (−20% per fault, floor 40%).
 
+**Camera view.** Sagittal-plane movements (squat, knee extension, forward raise, elbow curl, march) need a side view. From the front the moving segment points at the camera and its angle is foreshortened. Frontal-plane movements (side raise, hip abduction) need a front view. The app detects the view from shoulder width relative to torso length and asks the patient to turn when it's wrong. Sit-to-stand and the chair-stand test work from either view because they use shoulder height.
+
 **Form rules** fire only after persisting for 4 consecutive frames, and only in the camera view where they're observable. For example, knee valgus is checked only from the front, and trunk lean in a squat only from the side.
 
 ## Limitations (stated in the app and the report)

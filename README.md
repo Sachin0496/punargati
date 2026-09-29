@@ -1,12 +1,12 @@
 # PunarGati · पुनर्गति
 
-**Your physiotherapist's eyes at home.** PunarGati is an on-device AI physiotherapy coach for Snapdragon-powered HP PCs. It watches you exercise through the laptop camera, counts reps, measures joint angles like a goniometer, corrects your form out loud in 7 Indian languages, runs standard clinical screening tests, and writes a progress report you can hand to your physiotherapist.
+**Your physiotherapist's eyes at home.** PunarGati is an on-device AI physiotherapy coach for Snapdragon-powered HP PCs (OmniBook X, OmniBook Ultra, EliteBook Ultra and other Copilot+ PCs). It watches you exercise through the laptop camera, counts reps, measures joint angles like a goniometer, corrects your form out loud in 7 Indian languages, runs standard clinical screening tests, and writes a progress report you can hand to your physiotherapist.
 
 Pose tracking runs on the **Snapdragon Hexagon NPU** through ONNX Runtime's QNN execution provider, using a model from **Qualcomm AI Hub**. Session summaries, prescription import and Q&A come from a **local LLM**. No video, health data or prompt ever leaves the PC. It needs no internet connection, no account and no subscription.
 
 > *Punar* (again) + *gati* (movement): "movement, restored".
 
-![PunarGati coaching a squat: skeleton, joint angles, rep counter and live NPU telemetry](docs/img/coach.png)
+![PunarGati coaching a squat: skeleton, knee angles, rep counter and form feedback, live](docs/img/demo.gif)
 
 ---
 
