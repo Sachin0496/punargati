@@ -136,6 +136,7 @@ function handleEvent(ev) {
 
 // ------------------------------------------------------------- activity ----
 function exercise(id) { return state.lib.exercises.find(e => e.id === id); }
+const unitOf = label => (label || "").includes("%") ? "%" : "°";
 function test(id) { return state.lib.tests.find(t => t.id === id); }
 
 async function startActivity(kind, id, opts = {}) {
@@ -189,9 +190,10 @@ function renderActivity(a) {
     $("#gaugeFill").style.width = v == null ? "0%" : pct(v);
     $("#markEnter").style.left = pct(a.enter);
     $("#markGoal").style.left = pct(a.goal);
-    const shown = v == null ? "—" : (spec?.id === "knee_extension" ? `${Math.round(Math.max(0, 90 - v))}° from straight` : `${Math.round(v)}°`);
+    const u = unitOf(spec?.rom_label);
+    const shown = v == null ? "—" : (spec?.id === "knee_extension" ? `${Math.round(Math.max(0, 90 - v))}° from straight` : `${Math.round(v)}${u}`);
     $("#gaugeVal").textContent = `${side && SIDE[side] ? SIDE[side] + " " : ""}${shown}`;
-    $("#gaugeGoal").textContent = spec?.id === "knee_extension" ? "goal: straight (≤10°)" : `goal ${a.goal}°`;
+    $("#gaugeGoal").textContent = spec?.id === "knee_extension" ? "goal: straight (≤10°)" : `goal ${a.goal}${u}`;
     const moving = side && a.phase[side] === "moving";
     $("#phase").textContent = v == null ? "Not visible" : moving ? "Moving" : "Rest";
     $("#phase").className = moving ? "moving" : "";
@@ -199,7 +201,7 @@ function renderActivity(a) {
     const labels = { ready: "Get into position", countdown: "Get ready…", running: "Go!", done: "Done" };
     $("#testState").textContent = labels[a.state] || a.state;
     if (a.state === "ready") {
-      $("#testTimer").textContent = a.id === "chair_stand_30s" ? "Sit down to begin" : "Stand in view to begin";
+      $("#testTimer").textContent = a.id === "chair_stand_30s" ? "Sit on the chair, whole body in view" : "Stand in view to begin";
     } else if (a.state === "countdown") {
       $("#testBig").textContent = Math.ceil(a.countdown);
       $("#testUnit").textContent = "";
@@ -215,7 +217,7 @@ function renderActivity(a) {
 function renderLastRep(rep) {
   const q = rep.quality, cls = q >= 80 ? "" : q >= 55 ? "mid" : "low";
   const spec = state.active?.spec;
-  const romTxt = spec?.id === "knee_extension" ? `${rep.rom}° short` : `${rep.rom}°`;
+  const romTxt = spec?.id === "knee_extension" ? `${rep.rom}° short` : `${rep.rom}${unitOf(spec?.rom_label)}`;
   $("#lastRep").innerHTML = `
     <div class="grid3">
       <div><span>Quality</span><b class="q" style="color:${cls === "" ? "var(--good)" : cls === "mid" ? "var(--warn)" : "var(--bad)"}">${q}</b></div>
@@ -228,7 +230,7 @@ function addHistory(rep) {
   const i = document.createElement("i");
   i.style.height = `${Math.max(12, rep.quality)}%`;
   i.className = rep.quality >= 80 ? "" : rep.quality >= 55 ? "mid" : "low";
-  i.title = `${rep.quality}/100 · ${rep.rom}°`;
+  i.title = `${rep.quality}/100 · ${rep.rom}${unitOf(state.active?.spec?.rom_label)}`;
   $("#repHistory").append(i);
 }
 function renderTestResult(r) {
@@ -267,7 +269,7 @@ async function openSummary(rec) {
     const s = rec.summary;
     const sides = Object.entries(s.by_side);
     cells.push(["Reps", s.reps], ["Avg quality", `${s.avg_quality}/100`]);
-    sides.forEach(([k, v]) => cells.push([`Best ${k === "both" ? "" : k} ${s.rom_label.toLowerCase()}`.replace(/\s+/g, " "), `${v.best_rom}°`]));
+    sides.forEach(([k, v]) => cells.push([`Best ${k === "both" ? "" : k} ${s.rom_label.toLowerCase()}`.replace(/\s+/g, " "), `${v.best_rom}${unitOf(s.rom_label)}`]));
   } else {
     const r = rec.result;
     cells.push(["Score", `${r.score} ${r.unit}`], ["Flag", r.flag || "—"]);
@@ -333,7 +335,7 @@ async function loadProgress() {
     c.className = "card";
     const last = s.points[s.points.length - 1].value, first = s.points[0].value;
     const delta = typeof last === "number" && typeof first === "number" ? last - first : null;
-    const unit = s.kind === "exercise" ? "°" : (s.label === "degrees" ? "°" : "");
+    const unit = s.kind === "exercise" ? unitOf(s.label) : (s.label === "degrees" ? "°" : "");
     c.innerHTML = `<div class="row-between"><h3>${esc(s.name)}${s.side && s.side !== "both" ? ` <span class="muted">(${esc(s.side)})</span>` : ""}</h3>
       <span class="badge small">${delta == null ? "" : (delta >= 0 ? "+" : "") + delta.toFixed(1) + unit} since first</span></div>
       <p class="tiny">${esc(s.kind === "exercise" ? "Best " + s.label.toLowerCase() + " per session" : s.label)}</p>`;

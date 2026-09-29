@@ -99,5 +99,5 @@ export function localSummary(f, l = lang) {
   let s = fill(T.ex, { name: f.name, reps: f.reps, best: f.best ?? "—", q: f.quality });
   if (typeof f.delta === "number") s += " " + (f.delta === 0 ? T.same : fill(f.delta > 0 ? T.up : T.down, { d: Math.abs(f.delta) }));
   s += " " + (f.top_fault ? fill(T.fault, { fault: cueText(f.top_fault, l) }) : T.clean);
-  return s;
+  return (f.rom_label || "").includes("%") ? s.replace(/°/g, "%") : s;
 }

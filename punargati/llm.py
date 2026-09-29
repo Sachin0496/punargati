@@ -134,7 +134,8 @@ def degenerate(text: str) -> bool:
 def _fmt_session(rec: dict) -> str:
     if rec.get("kind") == "exercise":
         s = rec["summary"]
-        sides = "; ".join(f"{k}: {v['reps']} reps, best {s['rom_label'].lower()} {v['best_rom']}°, "
+        unit = "%" if "%" in s["rom_label"] else "°"
+        sides = "; ".join(f"{k}: {v['reps']} reps, best {s['rom_label'].lower()} {v['best_rom']}{unit}, "
                           f"quality {v['avg_quality']}/100" for k, v in s["by_side"].items())
         faults = ", ".join(f"{k.replace('_', ' ')} x{v}" for k, v in s["faults"].items()) or "none"
         return f"{rec['started'][:10]} {s['name']}: {sides}. Form corrections: {faults}."
@@ -154,7 +155,8 @@ def template_summary(rec: dict, history: list[dict]) -> str:
         cb = max((v["best_rom"] for v in cur["by_side"].values()), default=0)
         if cb and pb:
             d = round(cb - pb, 1)
-            trend = (f" Your best range changed by {d:+}° since {same[-1]['started'][:10]}."
+            u = "%" if "%" in cur["rom_label"] else "°"
+            trend = (f" Your best range changed by {d:+}{u} since {same[-1]['started'][:10]}."
                      if d else " Your range matched last time.")
     elif same and rec.get("kind") == "assessment":
         d = (rec["result"].get("score") or 0) - (same[-1]["result"].get("score") or 0)
