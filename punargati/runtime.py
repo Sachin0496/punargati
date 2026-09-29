@@ -18,9 +18,11 @@ launches skip compilation.
 
 from __future__ import annotations
 
+import json
 import logging
 import os
 import platform
+import tempfile
 import threading
 import time
 from dataclasses import dataclass, field
@@ -171,9 +173,13 @@ def _qnn_options(target: str, perf_mode: str) -> dict:
     return {"backend_path": gpu}
 
 
-def _qnn_session(model: Path, target: str, perf_mode: str, strict: bool, cache: Path | None):
+def _qnn_session(model: Path, target: str, perf_mode: str, strict: bool, cache: Path | None,
+                 profile_prefix: str | None = None):
     so = ort.SessionOptions()
     so.log_severity_level = 3
+    if profile_prefix:
+        so.enable_profiling = True
+        so.profile_file_prefix = profile_prefix
     if strict:
         # Fail loudly instead of silently running unsupported ops on the CPU;
         # lets us *prove* full NPU offload rather than assume it.
@@ -195,6 +201,22 @@ def _warm(sess: ort.InferenceSession) -> None:
         dtype = {"tensor(uint16)": np.uint16, "tensor(uint8)": np.uint8}.get(i.type, np.float32)
         feeds[i.name] = np.zeros(shape, dtype=dtype)
     sess.run(None, feeds)
+
+
+def _accelerated_nodes(sess: ort.InferenceSession) -> int:
+    """Run once with ORT profiling and count nodes the QNN EP actually executed.
+
+    A permissive (non-strict) QNN session "succeeds" even when the backend failed to
+    initialise (e.g. no NPU driver): every node silently lands on the CPU EP. Profiling
+    is the ground truth for where operators ran, so the UI never claims NPU falsely.
+    """
+    _warm(sess)
+    path = sess.end_profiling()
+    try:
+        events = json.loads(Path(path).read_text(encoding="utf-8"))
+    finally:
+        Path(path).unlink(missing_ok=True)
+    return sum(1 for e in events if e.get("cat") == "Node" and e.get("args", {}).get("provider") == QNN)
 
 
 def _clear_cache(cache: Path) -> None:
@@ -239,9 +261,17 @@ def load(name: str, model_path: Path, target: str, perf_mode: str = "burst") -> 
         try:
             if how == "strict+cache":
                 _clear_cache(cache)
+            if how == "fallback":
+                prefix = os.path.join(tempfile.gettempdir(), f"punargati_{target}_probe")
+                probe = _qnn_session(a["model"], target, perf_mode, False, None, profile_prefix=prefix)
+                n = _accelerated_nodes(probe)
+                del probe
+                if n == 0:
+                    raise RuntimeError("QNN backend accepted no operators (accelerator or driver unavailable)")
+                log.info("%s on %s: partial offload, %d QNN node(s)", name, target, n)
             sess = _qnn_session(a["model"], target, perf_mode, a["strict"], a["cache"])
             _warm(sess)
-            full = True if a["strict"] else (True if how == "cached" else None)
+            full = True if a["strict"] else (True if how == "cached" else False)
             log.info("%s on %s via %s (%.1fs)", name, target, how, time.perf_counter() - t0)
             return Session(name, target, model_path, sess, full_offload=full,
                            compile_s=time.perf_counter() - t0, from_cache=(how == "cached"))

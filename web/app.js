@@ -433,7 +433,7 @@ async function loadPerf() {
     b.disabled = !s.targets.includes(b.dataset.t);
     b.classList.toggle("active", b.dataset.t === pose.target);
   });
-  const offload = pose.full_offload === true ? "100% of operators on the accelerator (strict mode)" : pose.target === "cpu" ? "n/a (CPU)" : "partial / unknown";
+  const offload = pose.full_offload === true ? "100% of operators on the accelerator (strict mode)" : pose.target === "cpu" ? "n/a (CPU)" : "partial: some operators on CPU (verified by profiling)";
   $("#poseInfo").innerHTML = [
     ["Model", pose.model], ["Running on", pose.label], ["Graph placement", offload],
     ["Load / compile", `${pose.compile_s} s${pose.from_cache ? " (QNN context cache)" : ""}`],

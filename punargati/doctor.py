@@ -21,6 +21,10 @@ def line(ok, msg):
 
 
 def main() -> int:
+    try:  # never crash on a legacy console code page
+        sys.stdout.reconfigure(errors="replace")
+    except Exception:
+        pass
     print("\nPunarGati doctor\n")
     m = runtime.machine_info()
     arm = m["python_arch"].upper() in ("ARM64", "AARCH64", "ARM")
@@ -35,7 +39,7 @@ def main() -> int:
         line(s["present"], f"model {s['key']} ({s['source']})")
 
     targets = runtime.available_targets()
-    line("npu" in targets or None, f"compute units found: {', '.join(t.upper() for t in targets)}")
+    line("npu" in targets or None, f"compute units offered by ONNX Runtime: {', '.join(t.upper() for t in targets)} (verified below)")
     if runtime.qnn_ep is not None:
         try:
             for d in ort.get_ep_devices():
@@ -57,7 +61,7 @@ def main() -> int:
             for _ in range(100):
                 sess.run({i.name: x})
             ms = (time.perf_counter() - t0) * 10
-            full = " · 100% of ops on accelerator" if sess.full_offload else ""
+            full = {True: " · 100% of ops on accelerator (strict)", False: " · partial offload, verified by profiling"}.get(sess.full_offload, "")
             line(True, f"{sess.label}: {ms:.2f} ms/inference (load {sess.compile_s:.1f}s"
                        f"{', from QNN context cache' if sess.from_cache else ''}){full}")
             if t == "npu":

@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import logging
 import mimetypes
+import sys
 import threading
 import time
 import traceback
@@ -226,6 +227,10 @@ def serve(host: str = "127.0.0.1", port: int = 8765, target: str = "npu", open_b
     httpd.daemon_threads = True
     pose = app.engine.pose.session.describe()
     url = f"http://127.0.0.1:{port}/"
+    try:  # never crash on a legacy console code page
+        sys.stdout.reconfigure(errors="replace")
+    except Exception:
+        pass
     print("\n  PunarGati — on-device AI rehab coach")
     print(f"  pose model : {pose['model']} on {pose['label']}"
           f"{' (100% of ops on accelerator)' if pose['full_offload'] else ''}  [{pose['compile_s']} s load]")
