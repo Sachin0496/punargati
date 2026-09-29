@@ -13,11 +13,20 @@ These numbers come from Qualcomm AI Hub's own profiling jobs on reference hardwa
 | Snapdragon X2 Elite CRD | float | 0.47 ms | 214 / 214 |
 | Snapdragon X2 Elite CRD | w8a16 | 0.44 ms | 249 / 249 |
 
-At 30 fps the NPU is busy for about **3% of each 33 ms frame**, so it has room to add the wholebody and Whisper models on the roadmap.
+RTMPose-Body2d (precision mode, 133 keypoints), same source:
+
+| Device | Precision | Inference | Layers on NPU |
+|---|---|---:|---:|
+| Snapdragon X Elite CRD | float | 1.74 ms | 256 / 256 |
+| Snapdragon X Elite CRD | w8a16 | 1.84 ms | 265 / 265 |
+| Snapdragon X2 Elite CRD | float | 0.92 ms | 256 / 256 |
+| Snapdragon X2 Elite CRD | w8a16 | 0.79 ms | 265 / 265 |
+
+At 30 fps the MoveNet → RTMPose cascade keeps the NPU busy for about **9% of each 33 ms frame** on X Elite (MoveNet alone about 3%).
 
 ## Reference: a non-Snapdragon machine (CPU fallback)
 
-Apple M4, macOS, ORT CPU EP, MoveNet float: **2.4 ms p50**, 10.6% app CPU load at 30 fps. This shows the fallback path is comfortably real-time for reviewers without Snapdragon hardware.
+Apple M4, macOS, ORT CPU EP: MoveNet float **2.3 ms p50** (11% app CPU load at 30 fps), RTMPose float **8.9 ms p50** (15.5%). This shows the fallback path is comfortably real-time for reviewers without Snapdragon hardware.
 
 ## Measured on this device
 

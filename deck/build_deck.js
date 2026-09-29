@@ -111,7 +111,7 @@ function note(s, text) {
 {
   const s = base("The solution", "PunarGati turns a Snapdragon laptop into a physiotherapist's eyes");
   const P = [
-    ["Coach", "8 prescribed exercises. Reps per side, range of motion, tempo and a quality score for every rep. Spoken form corrections."],
+    ["Coach", "9 prescribed exercises. Reps per side, range of motion, tempo and a quality score for every rep. Spoken form corrections."],
     ["Test", "30-s chair stand (CDC fall-risk norms), single-leg balance, and shoulder / knee range of motion against AAOS reference values."],
     ["Track", "Recovery curves per joint, day streaks, and a printable report the patient hands to the physio."],
     ["Plan & ask", "Paste the physio's note to get a one-tap plan. The local LLM answers questions from your own data and escalates red flags."],
@@ -217,16 +217,16 @@ function note(s, text) {
 
 // 8 ─ Snapdragon compute
 {
-  const s = base("Snapdragon compute", "Continuous vision runs on the Hexagon NPU in ~1 ms, about 3% of each frame");
-  s.addChart(pptx.charts.BAR, [{ name: "MoveNet inference (ms)", labels: ["X Elite · float", "X Elite · w8a16", "X2 Elite · float", "X2 Elite · w8a16"], values: [1.04, 1.054, 0.469, 0.44] }], {
+  const s = base("Snapdragon compute", "Two AI Hub pose models run on the Hexagon NPU in under 3 ms per frame");
+  s.addChart(pptx.charts.BAR, [{ name: "Inference (ms)", labels: ["MoveNet · X Elite", "RTMPose · X Elite", "MoveNet · X2 Elite", "RTMPose · X2 Elite"], values: [1.054, 1.836, 0.44, 0.785] }], {
     x: M, y: 1.85, w: 6.3, h: 3.9, barDir: "bar", chartColors: [C.accent], catAxisLabelFontFace: F.body, catAxisLabelFontSize: 13, valAxisLabelFontSize: 11,
-    valAxisTitle: "ms per frame (lower is better)", showValAxisTitle: true, valAxisTitleFontSize: 11, valAxisMinVal: 0, valAxisMaxVal: 1.2, valAxisMajorUnit: 0.2,
+    valAxisTitle: "ms per frame (lower is better)", showValAxisTitle: true, valAxisTitleFontSize: 11, valAxisMinVal: 0, valAxisMaxVal: 2.0, valAxisMajorUnit: 0.5,
     dataLabelFontSize: 12, showValue: true, dataLabelFormatCode: "0.00", valGridLine: { color: C.line, size: 0.5 }, catGridLine: { style: "none" },
-    showTitle: true, title: "MoveNet latency on the Hexagon NPU (all layers on NPU)", titleFontSize: 14, titleColor: C.ink,
+    showTitle: true, title: "w8a16 builds on the Hexagon NPU, all layers on the NPU", titleFontSize: 14, titleColor: C.ink,
   });
-  s.addText("Source: Qualcomm AI Hub device profiles, MoveNet v0.63.0 (ONNX). Budget at 30 fps: 33 ms per frame.", { x: M, y: 5.8, w: 6.3, h: 0.4, fontFace: F.body, fontSize: 10.5, color: C.muted, italic: true });
+  s.addText("Source: Qualcomm AI Hub device profiles, v0.63.0 (ONNX). The cascade uses <10% of the 33 ms frame budget at 30 fps.", { x: M, y: 5.8, w: 6.3, h: 0.4, fontFace: F.body, fontSize: 10.5, color: C.muted, italic: true });
   const rows = [
-    ["Always-on pose", "Hexagon NPU", "onnxruntime-qnn plugin EP, HTP. Strict session proves 100% of ops on the NPU; context cache for instant relaunch"],
+    ["Pose cascade", "Hexagon NPU", "MoveNet tracks and RTMPose-WholeBody refines (133 keypoints, feet). onnxruntime-qnn, strict 100% offload, context cache"],
     ["Benchmark / fallback", "Adreno GPU · CPU", "Same model through the QNN GPU backend or the ORT CPU EP, with the fallback reason shown in the UI"],
     ["LLM, after a session", "Oryon CPU", "llama.cpp Q4_0 with i8mm repack. It decoded faster than the NPU/GPU backends in our earlier X Elite tests"],
   ];
@@ -245,11 +245,11 @@ function note(s, text) {
   const s = base("Technical implementation", "Engineered to be accurate, provable, and impossible to break in a demo");
   const E = [
     ["Provable NPU offload", "Sessions are built with session.disable_cpu_ep_fallback=1. Success means every operator is on the Hexagon NPU."],
-    ["Exact quantized I/O", "The w8a16 AI Hub build uses uint16 tensors; scale and zero-point come from AI Hub's metadata.json."],
-    ["Accuracy from 192 px", "MoveNet crop tracking keeps the person large; One-Euro filtering in body-scale units."],
+    ["Two-model NPU cascade", "MoveNet tracks the person. RTMPose-WholeBody re-estimates 133 keypoints on its box. Exact uint16 I/O from AI Hub metadata."],
+    ["Accuracy from small models", "MoveNet crop tracking keeps the person large; One-Euro filtering in body-scale units."],
     ["Honest rep counting", "Per-side hysteresis state machines, duration/timeout guards, form rules that must persist 4 frames."],
-    ["Robust clinical scores", "Median-of-5 ROM, server-side test timelines, age/sex norms, flags instead of diagnoses."],
-    ["Never dead in a demo", "NPU → GPU → CPU ladder, rule/template fallbacks for the LLM, 27 tests incl. real-video regressions."],
+    ["View-independent tests", "Self-calibrating shoulder-height signal for sit/stand. 3/3 stands on the CDC's own front-view video."],
+    ["Never dead in a demo", "NPU → GPU → CPU ladder, a QNN 1.x fallback route, LLM-free fallbacks, 29 tests incl. real video."],
   ];
   E.forEach(([h, t], i) => {
     const x = M + (i % 3) * 4.1, y = 1.9 + Math.floor(i / 3) * 2.15;
@@ -288,8 +288,8 @@ function note(s, text) {
 {
   const s = base("Impact & roadmap", "Next: hands, feet and voice, all on the same NPU");
   const R = [
-    ["Now", "Pose coach, 8 exercises, 5 tests, reports, local LLM, 7 languages"],
-    ["Next", "RTMPose wholebody (AI Hub, 133 keypoints) for ankle, wrist and finger ROM"],
+    ["Now", "Two-model NPU pose cascade, 9 exercises, 5 tests, reports, local LLM, 7 languages"],
+    ["Next", "Hand-focused RTMPose crop for wrist and finger ROM (stroke and hand therapy)"],
     ["Then", "Whisper on the NPU for hands-free \"next / stop / pain\" commands"],
     ["Pilot", "Validate against a goniometer with a physio clinic; FHIR/ABDM export; Arduino UNO Q haptic rep band"],
   ];

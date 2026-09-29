@@ -101,7 +101,7 @@ powershell -ExecutionPolicy Bypass -File scripts\setup.ps1   # native ARM64 Pyth
 scripts\run.ps1                                              # or double-click PunarGati.bat
 ```
 
-`setup.ps1` finds or installs a **native ARM64** Python. An x64 Python runs under emulation and can't load the NPU plugin. It then installs three packages and runs `python -m punargati.doctor`, which loads MoveNet on the NPU in strict mode and prints its latency. The browser opens at `http://127.0.0.1:8765`.
+`setup.ps1` finds or installs a **native ARM64** Python. The Precision-mode RTMPose weights (~100 MB) are downloaded from Qualcomm AI Hub and SHA-256-checked; MoveNet ships in the repo. An x64 Python runs under emulation and can't load the NPU plugin. It then installs three packages and runs `python -m punargati.doctor`, which loads MoveNet on the NPU in strict mode and prints its latency. The browser opens at `http://127.0.0.1:8765`.
 
 Optional local LLM coach (≈2.4 GB, one time):
 
@@ -128,7 +128,7 @@ No webcam? Click **Try the demo clip** on the start screen. It runs the same pip
 - **Rep counting that doesn't lie.** Each side runs its own hysteresis state machine (rest → moving → rest) with minimum-duration and timeout guards. Form rules must hold for several consecutive frames before they fire. ROM tests take a median-of-5 so a single-frame glitch can't set a "record".
 - **Local-only by construction.** The server binds to `127.0.0.1` and rejects foreign `Host` headers, which guards against DNS rebinding. The LLM client only probes loopback ports, and a remote URL needs an explicit opt-in.
 - **Validated on real footage.** On the **CDC's own 30-second chair stand demonstration video** (public domain), PunarGati counts **3/3 stands** (hand count), filmed from the front, where knee angles are useless because the thighs point at the camera. The sit/stand signal is a self-calibrating shoulder-height measure that works in any view. The squat demo clip gives **2/2 reps**. Both clips are regression tests.
-- **Tested.** 27 tests cover synthetic-skeleton kinematics, rep counting, clinical-test timelines, the prescription parser, HTTP integration with the real model, and the two real-video regressions: `python -m unittest discover -s tests`. `python -m punargati.offline clip.mp4 --exercise squat` replays any recording through the exact live pipeline.
+- **Tested.** 29 tests cover synthetic-skeleton kinematics, rep counting, clinical-test timelines, the prescription parser, HTTP integration with the real model, and the two real-video regressions: `python -m unittest discover -s tests`. `python -m punargati.offline clip.mp4 --exercise squat` replays any recording through the exact live pipeline.
 
 ## Privacy and safety
 
