@@ -45,9 +45,9 @@ def _log_once(e: Exception) -> None:
 
 
 class App:
-    def __init__(self, target: str):
+    def __init__(self, target: str, perf_mode: str = "burst"):
         self.target_requested = target
-        self.engine = Engine(target)
+        self.engine = Engine(target, perf_mode)
         self.bench_lock = threading.Lock()
         self.bench_running = False
 
@@ -207,8 +207,9 @@ class Handler(BaseHTTPRequestHandler):
             self.app.bench_running = False
 
 
-def serve(host: str = "127.0.0.1", port: int = 8765, target: str = "npu", open_browser: bool = True):
-    app = App(target)
+def serve(host: str = "127.0.0.1", port: int = 8765, target: str = "npu", open_browser: bool = True,
+          perf_mode: str = "burst"):
+    app = App(target, perf_mode)
     Handler.app = app
     Handler.allowed_hosts = {f"127.0.0.1:{port}", f"localhost:{port}", f"[::1]:{port}"}
     if host not in ("127.0.0.1", "localhost", "::1"):

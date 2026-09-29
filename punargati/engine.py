@@ -41,9 +41,10 @@ class CpuMeter:
 
 
 class Engine:
-    def __init__(self, target: str = "npu"):
+    def __init__(self, target: str = "npu", perf_mode: str = "burst"):
         self.lock = threading.Lock()
-        self.pose = PoseEstimator(target)
+        self.perf_mode = perf_mode
+        self.pose = PoseEstimator(target, perf_mode)
         self.smoother = KeypointSmoother()
         self.cpu = CpuMeter()
         self.activity = None          # RepCounter | Assessment | None
@@ -63,7 +64,7 @@ class Engine:
     # -- compute unit ---------------------------------------------------------
     def set_target(self, target: str) -> dict:
         with self.lock:
-            self.pose.load(target)
+            self.pose.load(target, self.perf_mode)
         return self.pose.session.describe()
 
     # -- activity lifecycle ---------------------------------------------------

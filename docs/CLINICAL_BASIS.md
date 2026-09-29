@@ -15,7 +15,9 @@ PunarGati automates what a physiotherapist does with a stopwatch, a goniometer a
 ## Screening tests implemented
 
 ### 30-second chair stand
-- **Protocol**: the patient sits in the middle of a firm chair with arms crossed over the chest, then stands fully and sits as many times as possible in 30 s. A stand is counted when the knees reach less than 25° of flexion and the hips less than 35° after a seated phase (knee flexion over 60°).
+- **Protocol**: the patient sits in the middle of a firm chair with arms crossed over the chest, then stands fully and sits as many times as possible in 30 s.
+- **Detection**: the signal is shoulder height above the feet, median-filtered and self-calibrated to the patient's own seated and standing heights, so it works **from the front or the side**. Knee angle fails from the front because the seated thigh points at the camera and the knee looks straight. A stand counts at 80% of the seated→standing range, and the next one only after dropping below 35% (hysteresis).
+- **Validation**: on the CDC's own demonstration video (front view, public domain), 3 of 3 stands are counted, matching a hand count. This clip is a regression test (`tests/test_video.py`).
 - **Interpretation**: the CDC STEADI "below average" thresholds, where a lower score indicates fall risk:
 
 | Age | Men | Women |
@@ -58,5 +60,6 @@ Sources: CDC STEADI *Assessment: 30-Second Chair Stand*; Jones CJ, Rikli RE, Bea
 
 1. **2-D projection.** A single camera measures angles in the image plane. When the moving segment isn't square to the camera, the angle is under-estimated. PunarGati tells the patient which view each exercise needs ("turn side-on", "face the camera") and reports trends rather than single readings.
 2. **17 keypoints.** MoveNet has no feet or hands, so there's no ankle dorsiflexion or wrist/finger ROM yet. The roadmap adds AI Hub's RTMPose wholebody (133 keypoints).
-3. **Not validated against a goniometer yet.** The bundled demo clip counts 2/2 squats correctly, and the synthetic-skeleton unit tests recover joint angles to within 0.5°. A validation study against a clinical goniometer with a physiotherapist is the next step.
-4. **Not a medical device.** It doesn't diagnose, doesn't change the prescription, and escalates red-flag symptoms to the clinician.
+3. **Not validated against a goniometer yet.** Counting is validated on real footage: 3/3 stands on the CDC chair-stand video and 2/2 on the squat clip. The synthetic-skeleton unit tests recover joint angles to within 0.5°. A validation study against a clinical goniometer with a physiotherapist is the next step.
+4. **One person in frame.** MoveNet is a single-person model. If a caregiver stands next to the patient, the tracker can switch to them, so the app asks for one person in view. We saw this on the side-view part of the CDC video, where the assessor stands behind the patient.
+5. **Not a medical device.** It doesn't diagnose, doesn't change the prescription, and escalates red-flag symptoms to the clinician.

@@ -49,9 +49,12 @@ export function cueText(key, l = lang) {
 }
 
 export function voiceFor(l = lang) {
+  // Only on-device voices: browsers also list cloud "Online (Natural)" voices, which would
+  // send coaching text off the PC.
+  const local = voices.filter(v => v.localService);
   const want = LANGS[l]?.voice || "en-IN";
   const base = want.split("-")[0];
-  return voices.find(v => v.lang === want) || voices.find(v => v.lang?.startsWith(base)) || null;
+  return local.find(v => v.lang === want) || local.find(v => v.lang?.replace("_", "-").startsWith(base)) || null;
 }
 
 let lastSpoken = 0;

@@ -194,6 +194,15 @@ def compute(kps: np.ndarray, t: float) -> Frame:
     else:
         ang["knee_gap_ratio"] = nan
 
+    # Shoulder height above the feet (px). Unlike knee angle it separates sitting from
+    # standing in *any* view: from the front a seated thigh points at the camera and the
+    # knee looks straight, but the shoulders still drop by ~30%.
+    ank = [n for n in ("left_ankle", "right_ankle") if _ok(kps, n)]
+    if shs and ank:
+        ang["stand_height_px"] = float(np.mean([kps[KP[n], 1] for n in ank]) - np.mean([kps[KP[n], 1] for n in shs]))
+    else:
+        ang["stand_height_px"] = nan
+
     # Foot lift (for balance tests): vertical ankle separation in body heights.
     scale = body_scale(kps)
     if _ok(kps, "left_ankle", "right_ankle") and scale > 0:

@@ -50,9 +50,10 @@ def _feeds(sess: runtime.Session) -> dict:
     return {i.name: np.random.rand(*shape).astype(np.float32)}
 
 
-def bench_target(target: str, seconds: float = 10.0, iters: int = 300, power: bool = True) -> dict:
+def bench_target(target: str, seconds: float = 10.0, iters: int = 300, power: bool = True,
+                 perf_mode: str = "burst") -> dict:
     asset = ASSETS[PREFERRED[target]]
-    sess = runtime.load(f"MoveNet ({asset.precision})", asset.onnx_path, target)
+    sess = runtime.load(f"MoveNet ({asset.precision})", asset.onnx_path, target, perf_mode)
     feeds = _feeds(sess)
     for _ in range(20):
         sess.run(feeds)
@@ -84,8 +85,9 @@ def bench_target(target: str, seconds: float = 10.0, iters: int = 300, power: bo
     wall = time.perf_counter() - w0
     cpu = 100 * (sum(os.times()[:2]) - c0) / wall / (os.cpu_count() or 1)
     pick = lambda q: round(lat[min(len(lat) - 1, int(q * len(lat)))], 3)  # noqa: E731
+    label = sess.label + (f" · {perf_mode.replace('_', ' ')}" if target == "npu" else "")
     return {
-        "target": target, "label": sess.label, "precision": asset.precision,
+        "target": target, "label": label, "precision": asset.precision, "perf_mode": perf_mode,
         "full_offload": sess.full_offload, "load_s": round(sess.compile_s, 2),
         "p50_ms": pick(0.5), "p90_ms": pick(0.9), "p99_ms": pick(0.99),
         "max_fps": round(1000 / max(1e-6, pick(0.5))),
@@ -100,11 +102,16 @@ def run(seconds: float = 10.0, targets: list[str] | None = None) -> dict:
            "model": "MoveNet (Qualcomm AI Hub v0.63.0)", "results": []}
     idle = _battery_mw()
     res["idle_battery_watts"] = round(idle / 1000, 2) if idle else None
+    runs = []
     for t in targets:
+        # On the NPU also measure a power-saving HTP clock policy: at 30 fps the NPU idles
+        # ~97% of each frame, so a lower clock can cut power while staying real-time.
+        runs += [(t, "burst"), (t, "power_saver")] if t == "npu" else [(t, "burst")]
+    for t, mode in runs:
         try:
-            res["results"].append(bench_target(t, seconds))
+            res["results"].append(bench_target(t, seconds, perf_mode=mode))
         except Exception as e:
-            res["results"].append({"target": t, "error": str(e)[:300]})
+            res["results"].append({"target": t, "perf_mode": mode, "error": str(e)[:300]})
     store.save_bench(res)
     return res
 

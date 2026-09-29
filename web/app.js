@@ -359,7 +359,8 @@ $("#btnParse").onclick = async () => {
   $("#parseInfo").textContent = "Reading on-device…";
   try {
     parsed = await api("/api/plan/parse", { text: $("#rxText").value });
-    $("#parseInfo").textContent = parsed.source === "llm" ? `Parsed by on-device LLM (${parsed.model})` : "Parsed by rule engine (no LLM running)";
+    const how = { "llm": "on-device LLM", "rules+llm": "rule engine + on-device LLM", "rules (LLM agreed)": "rule engine, confirmed by on-device LLM", "rules": "rule engine (no LLM running)" }[parsed.source] || parsed.source;
+    $("#parseInfo").textContent = `Parsed by ${how}${parsed.model ? ` · ${parsed.model}` : ""}`;
     $("#parsePreview").innerHTML = parsed.items.length ? `<table class="table" style="margin-top:12px"><tr><th>Activity</th><th>Dose</th><th>Side</th><th>When</th></tr>
       ${parsed.items.map(it => `<tr><td>${esc(planName(it))}</td><td>${it.kind === "exercise" ? `${it.sets} × ${it.reps}` : "test"}</td><td>${esc(it.side)}</td><td>${esc(it.frequency)}</td></tr>`).join("")}</table>
       <div class="row" style="margin-top:10px"><button class="primary" id="btnSavePlan">Save as my plan</button></div>`
@@ -459,7 +460,7 @@ function renderBench(res) {
   const chart = (title, key, unit, better, fmt) => {
     const d = document.createElement("div");
     d.innerHTML = `<h4>${title}</h4>`;
-    d.append(barChart(ok.map(r => ({ label: r.target.toUpperCase(), value: r[key] })), { unit, better, fmt, height: 150 }));
+    d.append(barChart(ok.map(r => ({ label: r.target.toUpperCase() + (r.perf_mode === "power_saver" ? " saver" : ""), value: r[key] })), { unit, better, fmt, height: 40 + 50 * ok.length }));
     g.append(d);
   };
   chart("Inference latency (p50)", "p50_ms", " ms", "lower", v => v.toFixed(2));
@@ -467,7 +468,7 @@ function renderBench(res) {
   if (ok.some(r => r.battery_watts_at_30fps)) chart("Battery draw @30 fps", "battery_watts_at_30fps", " W", "lower", v => v.toFixed(1));
   else chart("Max throughput", "max_fps", " fps", "higher", v => Math.round(v));
   $("#benchTable").innerHTML = `<tr><th>Unit</th><th>Precision</th><th>p50</th><th>p99</th><th>Max FPS</th><th>CPU @30fps</th><th>Battery @30fps</th><th>Full offload</th></tr>` +
-    res.results.map(r => r.error ? `<tr><td>${r.target}</td><td colspan="7" class="muted">${esc(r.error.slice(0, 120))}</td></tr>` :
+    res.results.map(r => r.error ? `<tr><td>${r.target}${r.perf_mode === "power_saver" ? " (power saver)" : ""}</td><td colspan="7" class="muted">${esc(r.error.slice(0, 120))}</td></tr>` :
       `<tr><td>${esc(r.label)}</td><td>${r.precision}</td><td>${r.p50_ms} ms</td><td>${r.p99_ms} ms</td><td>${r.max_fps}</td><td>${r.cpu_percent_at_30fps}%</td><td>${r.battery_watts_at_30fps ?? "n/a"}${r.battery_watts_at_30fps ? " W" : ""}</td><td>${r.full_offload === true ? "✓" : "—"}</td></tr>`).join("");
 }
 

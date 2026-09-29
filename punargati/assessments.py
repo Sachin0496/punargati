@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import math
 
+from .exercises import RiseMetric
 from .kinematics import Frame
 
 # CDC STEADI: a score *below* these values indicates a risk for falls.
@@ -100,7 +101,8 @@ class Assessment:
         self.result: dict | None = None
         # chair stand
         self.stands = 0
-        self.seated = False
+        self.seated = True  # protocol starts seated; if not, the first sit just calibrates
+        self.rise = RiseMetric()
         # single-leg stance
         self.lift_t = None
         self.down_frames = 0
@@ -124,6 +126,8 @@ class Assessment:
                 ev.append({"type": "cue", "cue": "test_countdown"})
             return ev
         if self.state == "countdown":
+            if self.id == "chair_stand_30s":
+                self.rise(f, "b")  # learn the seated height during the countdown
             if f.t - self.t0 >= self.COUNTDOWN:
                 self.state, self.t_run = "running", f.t
                 ev.append({"type": "cue", "cue": "test_start"})
@@ -141,20 +145,19 @@ class Assessment:
 
     def _ready_pose(self, f: Frame) -> bool:
         if self.id == "chair_stand_30s":
-            k = [v for v in (f.get("knee_flex_l"), f.get("knee_flex_r")) if not math.isnan(v)]
-            return bool(k) and max(k) > 60  # seated
+            return not math.isnan(f.get("stand_height_px"))
         return f.body_px > 0 and not math.isnan(f.get("trunk_lean"))
 
     def _chair(self, f: Frame) -> list[dict]:
-        k = [v for v in (f.get("knee_flex_l"), f.get("knee_flex_r")) if not math.isnan(v)]
-        h = [v for v in (f.get("hip_flex_l"), f.get("hip_flex_r")) if not math.isnan(v)]
-        if not k:
+        # View-independent: self-calibrating shoulder height (see exercises.RiseMetric).
+        # A stand counts when the rise passes 80% of the seated->standing range, and
+        # the next one only after dropping back below 35% (hysteresis).
+        rise = self.rise(f, "b")
+        if math.isnan(rise):
             return []
-        knee = sum(k) / len(k)
-        hip = sum(h) / len(h) if h else 0.0
-        if knee > 60:
+        if rise < 35:
             self.seated = True
-        elif self.seated and knee < 25 and hip < 35:
+        elif self.seated and rise > 80:
             self.seated = False
             self.stands += 1
             return [{"type": "count", "count": self.stands}]

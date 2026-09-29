@@ -33,6 +33,37 @@ def _ext_from_90(key: str, both: bool) -> Callable[[Frame, str], float]:
     return lambda f, s: 90.0 - base(f, s)
 
 
+class RiseMetric:
+    """Self-calibrating 0-100 "how far up" signal for sit-to-stand, from shoulder height.
+
+    Tracks the seated (min) and standing (max) shoulder heights seen so far, so it
+    needs no per-user setup and works from the front or the side. A median of 5
+    frames rejects single-frame keypoint glitches before they can move the range.
+    """
+
+    MIN_SPAN = 0.22   # standing must be >=22% taller than seated before counting
+
+    def __init__(self):
+        self.buf: list[float] = []
+        self.lo = self.hi = None
+
+    def __call__(self, f: Frame, s: str) -> float:
+        v = f.get("stand_height_px")
+        if math.isnan(v):
+            return nan
+        self.buf.append(v)
+        if len(self.buf) > 5:
+            self.buf.pop(0)
+        v = sorted(self.buf)[len(self.buf) // 2]
+        self.lo = v if self.lo is None else min(self.lo, v)
+        self.hi = v if self.hi is None else max(self.hi, v)
+        span = self.hi - self.lo
+        if span < self.MIN_SPAN * self.lo:
+            # Range not established yet: express progress against a typical 1.4x rise.
+            return max(0.0, min(100.0, 100 * (v - self.lo) / (0.4 * self.lo)))
+        return max(0.0, min(100.0, 100 * (v - self.lo) / span))
+
+
 @dataclass
 class Rule:
     """A form check evaluated every frame while a rep is in progress."""
@@ -61,6 +92,7 @@ class Exercise:
     ideal_rep_s: float = 2.0
     steps: tuple = ()
     purpose: str = ""
+    metric_factory: Callable | None = None  # stateful metric, fresh per session
 
     def public(self) -> dict:
         return {
@@ -97,8 +129,8 @@ LIBRARY: dict[str, Exercise] = {e.id: e for e in [
     ),
     Exercise(
         id="sit_to_stand", name="Sit to stand", region="functional", sides="both", view="any",
-        metric=_ext_from_90("knee_flex", both=True), rest=25, enter=50, target=75,
-        rom_label="Knee extension on standing", ideal_rep_s=3.0,
+        metric=lambda f, s: nan, metric_factory=RiseMetric, rest=30, enter=70, target=90,
+        rom_label="Rise (% of full stand)", ideal_rep_s=3.0,
         rules=[],
         steps=("Sit on a firm chair, feet flat, arms crossed on chest",
                "Lean slightly forward and stand up fully",
@@ -212,6 +244,7 @@ class RepCounter:
         self.ex = ex
         self.sides = ["b"] if ex.sides == "both" else (["l", "r"] if side in ("auto", "both") else [side[0]])
         self.m = {s: _SideMachine() for s in self.sides}
+        self.metric = ex.metric_factory() if ex.metric_factory else ex.metric
         self.reps: list[Rep] = []
         self.value: dict[str, float] = {s: nan for s in self.sides}
 
@@ -224,7 +257,7 @@ class RepCounter:
     def update(self, f: Frame) -> list[dict]:
         events: list[dict] = []
         for s in self.sides:
-            v = self.ex.metric(f, s)
+            v = self.metric(f, s)
             self.value[s] = v
             m = self.m[s]
             if math.isnan(v):
