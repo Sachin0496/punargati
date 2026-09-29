@@ -100,7 +100,8 @@ def render(summary_text: str | None = None) -> str:
 
     prow = "".join(
         f"<li>{e(LIBRARY[i['id']].name if i['id'] in LIBRARY else TESTS[i['id']]['name'])}"
-        f" — {i['sets']}×{i['reps'] or ''} {e(i['side'])}, {e(i['frequency'])}</li>"
+        f" — {(str(i['sets']) + '×' + str(i['reps'])) if i.get('reps') else 'test'}"
+        f"{'' if i['side'] == 'auto' else ', ' + e(i['side'])}, {e(i['frequency'])}</li>"
         for i in plan.get("items", []) if i["id"] in LIBRARY or i["id"] in TESTS) or "<li>No plan imported</li>"
 
     return f"""<!doctype html><html lang="en"><head><meta charset="utf-8">
@@ -132,5 +133,6 @@ th{{background:#f1f5f9;font-weight:600}} .muted{{color:#64748b}} .kpi{{display:f
 <h2>Prescribed home plan</h2><ul>{prow}</ul>
 <div class="foot">Angles are 2-D estimates from a single camera and can differ from a clinical goniometer, most of all when
 the joint is not square to the camera; compare trends, not single readings. PunarGati is a coaching and screening aid, not a medical device; it does not diagnose.
-Pose model: MoveNet via Qualcomm AI Hub, executed on the Snapdragon Hexagon NPU.</div>
+Pose models: MoveNet (plus RTMPose-WholeBody in precision mode) from Qualcomm AI Hub; the compute unit used for each
+session is listed above.</div>
 </body></html>"""
