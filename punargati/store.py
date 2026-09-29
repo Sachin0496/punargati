@@ -59,6 +59,9 @@ def set_plan(plan: dict) -> dict:
 
 def save_session(rec: dict) -> str:
     sid = rec.get("id") or time.strftime("%Y%m%d-%H%M%S")
+    base, k = sid, 1
+    while not rec.get("id") and (DATA / "sessions" / f"{sid}.json").exists():  # two saves in one second
+        sid, k = f"{base}-{k}", k + 1
     rec["id"] = sid
     with _lock:
         _write(DATA / "sessions" / f"{sid}.json", rec)
