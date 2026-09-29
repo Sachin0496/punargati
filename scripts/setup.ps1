@@ -44,7 +44,17 @@ if ($LASTEXITCODE -ne 0) { throw "pip install failed" }
 # 3. Models (vendored in the repo; this verifies/re-downloads from Qualcomm AI Hub if missing).
 & $VPy -m punargati.models download
 
-# 4. Prove the NPU path end-to-end.
+# 4. Prove the NPU path end-to-end. If the 2.x plugin EP can't reach the NPU on this
+#    machine, fall back to the 1.x onnxruntime-qnn build (ORT with QNN compiled in).
 & $VPy -m punargati.doctor
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "`nNPU not reachable through the onnxruntime-qnn 2.x plugin - trying the 1.x build..." -ForegroundColor Yellow
+    & $VPy -m pip uninstall -y onnxruntime onnxruntime-qnn
+    & $VPy -m pip install "onnxruntime-qnn==1.24.4"
+    & $VPy -m punargati.doctor
+    if ($LASTEXITCODE -ne 0) {
+        Write-Host "Still no NPU - PunarGati will run on the CPU. See docs\WINDOWS_ARM64_SETUP.md (Troubleshooting)." -ForegroundColor Yellow
+    }
+}
 Write-Host "`nSetup complete. Start PunarGati with:  scripts\run.ps1   (or double-click PunarGati.bat)" -ForegroundColor Green
 Write-Host "Optional on-device LLM coach:           scripts\setup-llm.ps1  then  scripts\serve-llm.ps1"

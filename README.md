@@ -47,9 +47,11 @@ Sources are in [docs/CLINICAL_BASIS.md](docs/CLINICAL_BASIS.md).
 - **7 coaching languages**: English, हिन्दी, தமிழ், తెలుగు, ಕನ್ನಡ, मराठी and বাংলা. Voice cues use Windows' offline speech voices.
 - **An "NPU & performance" page** that shows which compute unit runs the model and whether 100% of the graph is on the NPU. It also runs a benchmark comparing NPU, GPU and CPU on latency, CPU load and battery draw.
 
-| Clinical tests | Recovery progress | NPU vs GPU vs CPU |
+| Clinical tests | Recovery progress | Prescription → plan |
 |---|---|---|
-| ![tests](docs/img/tests.png) | ![progress](docs/img/progress.png) | ![performance](docs/img/perf.png) |
+| ![tests](docs/img/tests.png) | ![progress](docs/img/progress.png) | ![plan import](docs/img/plan.png) |
+
+<sub>Screenshots were taken on a development machine running the CPU fallback. On a Snapdragon PC the compute badge reads *Hexagon NPU*.</sub>
 
 ## Architecture
 

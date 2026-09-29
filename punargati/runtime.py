@@ -55,7 +55,7 @@ def machine_info() -> dict:
         "python": platform.python_version(),
         "processor": platform.processor() or platform.machine(),
         "onnxruntime": ort.__version__,
-        "onnxruntime_qnn": getattr(qnn_ep, "__version__", None),
+        "onnxruntime_qnn": getattr(qnn_ep, "__version__", None) or ("1.x (built into onnxruntime)" if _legacy() else None),
         "emulated": arch.upper() in ("AMD64", "X86") and "ARM" in (platform.processor() or "").upper(),
     }
 
@@ -75,8 +75,19 @@ def _register_qnn() -> bool:
     return True
 
 
+def _legacy() -> bool:
+    """onnxruntime-qnn 1.x: a full ORT build with the QNN EP compiled in (no plugin)."""
+    try:
+        return qnn_ep is None and QNN in ort.get_available_providers()
+    except Exception:
+        return False
+
+
 def _qnn_devices(kind: str) -> list:
-    devices = [d for d in ort.get_ep_devices() if d.ep_name == QNN]
+    try:
+        devices = [d for d in ort.get_ep_devices() if d.ep_name == QNN]
+    except Exception:  # ORT < 1.22 has no device API
+        return []
     want = {"npu": "NPU", "gpu": "GPU"}[kind]
     typed = []
     for d in devices:
@@ -94,6 +105,8 @@ def available_targets() -> list[str]:
         targets.append("npu")
         if os.path.isfile(qnn_ep.get_qnn_gpu_path()):
             targets.append("gpu")
+    elif _legacy():
+        targets += ["npu", "gpu"]
     targets.append("cpu")
     return targets
 
@@ -147,13 +160,15 @@ class Session:
 
 
 def _qnn_options(target: str, perf_mode: str) -> dict:
+    htp = qnn_ep.get_qnn_htp_path() if qnn_ep else "QnnHtp.dll"   # 1.x resolves next to ORT
+    gpu = qnn_ep.get_qnn_gpu_path() if qnn_ep else "QnnGpu.dll"
     if target == "npu":
         return {
-            "backend_path": qnn_ep.get_qnn_htp_path(),
+            "backend_path": htp,
             "htp_performance_mode": perf_mode,
             "htp_graph_finalization_optimization_mode": "3",
         }
-    return {"backend_path": qnn_ep.get_qnn_gpu_path()}
+    return {"backend_path": gpu}
 
 
 def _qnn_session(model: Path, target: str, perf_mode: str, strict: bool, cache: Path | None):
@@ -166,8 +181,11 @@ def _qnn_session(model: Path, target: str, perf_mode: str, strict: bool, cache: 
     if cache is not None:
         so.add_session_config_entry("ep.context_enable", "1")
         so.add_session_config_entry("ep.context_file_path", str(cache))
-    so.add_provider_for_devices(_qnn_devices(target), _qnn_options(target, perf_mode))
-    return ort.InferenceSession(str(model), sess_options=so)
+    if _qnn_registered:
+        so.add_provider_for_devices(_qnn_devices(target), _qnn_options(target, perf_mode))
+        return ort.InferenceSession(str(model), sess_options=so)
+    return ort.InferenceSession(str(model), sess_options=so,
+                                providers=[(QNN, _qnn_options(target, perf_mode)), "CPUExecutionProvider"])
 
 
 def _warm(sess: ort.InferenceSession) -> None:
@@ -201,10 +219,11 @@ def load(name: str, model_path: Path, target: str, perf_mode: str = "burst") -> 
         return Session(name, "cpu", model_path, sess, full_offload=None,
                        compile_s=time.perf_counter() - t0)
 
-    if not _register_qnn():
-        raise RuntimeError("onnxruntime-qnn is not installed (or not loadable in this Python)")
-    if not _qnn_devices(target):
-        raise RuntimeError(f"no QNN device found for target '{target}'")
+    plugin = _register_qnn() and bool(_qnn_devices(target))
+    if not plugin and not _legacy():
+        if qnn_ep is None:
+            raise RuntimeError("onnxruntime-qnn is not installed (or not loadable in this Python)")
+        raise RuntimeError(f"no QNN device found for target '{target}' (NPU driver missing?)")
 
     cache = model_path.with_name(f"{model_path.stem}.{target}_ctx.onnx")
     attempts: list[tuple[str, dict]] = []

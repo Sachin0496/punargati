@@ -54,6 +54,7 @@ Voice cues use Windows' offline speech voices. Add them in **Settings › Time &
 |---|---|---|
 | `OSError: [WinError 193] %1 is not a valid Win32 application` or doctor says "x64 emulation" | The venv was built from an x64 Python | `winget install --id Python.Python.3.12 --architecture arm64`, delete `.venv`, re-run `setup.ps1`. Check with `python -c "import os;print(os.environ['PROCESSOR_ARCHITECTURE'])"`, which must print `ARM64` |
 | Doctor: `no QNN device found for target 'npu'` | NPU driver missing or outdated | Run Windows Update, including *optional driver updates*, then install the latest Qualcomm Hexagon NPU driver from your OEM (HP Support Assistant) |
+| Doctor fails with the 2.x plugin EP | Plugin EP/driver mismatch | `setup.ps1` automatically retries with `onnxruntime-qnn==1.24.4` (ORT with QNN built in), which PunarGati also supports. Manual: `pip uninstall -y onnxruntime onnxruntime-qnn; pip install onnxruntime-qnn==1.24.4` |
 | NPU strict mode fails, app runs as "partial / unknown" | An operator isn't supported by this QAIRT version | The app still runs with QNN plus CPU fallback. Upgrade with `pip install -U onnxruntime-qnn` |
 | First launch slow | QNN graph compilation | One time only. Cached as `models/movenet-w8a16/movenet.npu_ctx.onnx` |
 | Camera doesn't start | Browser permission, or another app holds the camera | Allow the camera in the browser's site settings and close Teams or Zoom |
