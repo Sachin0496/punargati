@@ -4,7 +4,7 @@ Record on the Snapdragon laptop with Windows' Snipping Tool (screen record) or X
 
 **Before recording**
 1. `scripts\run.ps1` and wait for the NPU badge (top right) to show *Hexagon NPU · ~1 ms*.
-2. Profile tab: name, age (use a parent's age, e.g. 64, to make the fall-risk norms meaningful), condition "Right knee replacement, week 4", physio name, language Hindi.
+2. Profile tab: name, age (use a parent's age, e.g. 64, to make the fall-risk norms meaningful), condition "Right knee replacement, week 4", physio name, language Hindi. Hindi also switches the patient screens to Hindi, which is worth showing for a few seconds. Switch back to English for the technical parts if you prefer.
 3. Optional: `scripts\serve-llm.ps1` in another window so the AI summary and Q&A are live.
 4. Do one short squat set and one chair-stand test off camera so the Progress tab already has two points.
 
